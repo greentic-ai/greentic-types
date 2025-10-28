@@ -1,15 +1,19 @@
 [package]
 name = "greentic-types"
-version = "0.1.0"
+version = "0.1.2"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/greentic-ai/greentic-types"
-description = "Shared types for Greentic flows, multi-tenant context, and envelopes."
 readme = "README.md"
-keywords = ["greentic", "multi-tenant", "context", "flow"]
+description = "Shared primitives for Greentic: TenantCtx, InvocationEnvelope, NodeError, ids."
+keywords = ["greentic","tenant","ctx","envelope","wasm"]
+categories = ["data-structures","config"]
+
+[features]
+default = ["std","serde"]
+std = []
+serde = ["dep:serde"]
 
 [dependencies]
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-thiserror = "1"
-md5 = "0.7"
+serde = { version = "1", features = ["derive"], optional = true }
+time = "0.3"
