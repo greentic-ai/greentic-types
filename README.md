@@ -57,5 +57,8 @@ cargo test
 ### no_std
 Enable `default-features = false` and use only `time`-backed types that don't require alloc-heavy helpers.
 
+### Pack spec
+Use `greentic_types::pack_spec::{PackSpec, ToolSpec}` to deserialize `pack.yaml` files shared across Greentic surfaces.
+
 ## License
 MIT License. See [LICENSE](LICENSE).

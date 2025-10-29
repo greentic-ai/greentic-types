@@ -6,6 +6,12 @@
 
 extern crate alloc;
 
+#[cfg(feature = "serde")]
+pub mod pack_spec;
+
+#[cfg(feature = "serde")]
+pub use pack_spec::{PackSpec, ToolSpec};
+
 use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
 use core::fmt;
 use time::OffsetDateTime;
