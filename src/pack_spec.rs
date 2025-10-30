@@ -1,41 +1,46 @@
 //! Serde-ready representations for Greentic `pack.yaml` manifests.
 
 use alloc::{string::String, vec::Vec};
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-/// Deserialize the contents of `pack.yaml` to configure packs.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Canonical on-disk pack specification (`pack.yaml`).
+///
+/// Fields default to empty collections to keep additive evolution backwards compatible.
+#[derive(Debug, Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PackSpec {
     /// Unique identifier for the pack.
     pub id: String,
-    /// Semantically versioned identifier for the pack schema.
+    /// Semantic pack version.
     pub version: String,
-    /// Relative file paths containing flow definitions bundled with the pack.
-    #[serde(default)]
+    /// Relative flow file paths bundled with the pack.
+    #[cfg_attr(feature = "serde", serde(default))]
     pub flow_files: Vec<String>,
-    /// Directories containing flow templates.
-    #[serde(default)]
+    /// Template directories that should be bundled with the pack.
+    #[cfg_attr(feature = "serde", serde(default))]
     pub template_dirs: Vec<String>,
-    /// Optional tool definitions that ship with the pack.
-    #[serde(default)]
-    pub tools: Vec<ToolSpec>,
-    /// External packs that must be present when executing this pack.
-    #[serde(default)]
+    /// Optional set of required imports enforced by the host.
+    #[cfg_attr(feature = "serde", serde(default))]
     pub imports_required: Vec<String>,
+    /// Optional legacy tool definitions. Prefer MCP-first designs.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub tools: Vec<ToolSpec>,
 }
 
 /// Tool metadata referenced by a [`PackSpec`].
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ToolSpec {
     /// Tool identifier referenced by flows.
     pub name: String,
     /// Optional hint for the loader to determine the tool source (for example `mcp`).
-    #[serde(default)]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub source: Option<String>,
     /// Filesystem path hint for embedded tools.
-    #[serde(default)]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub path: Option<String>,
     /// Actions exposed by the tool.
-    #[serde(default)]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub actions: Vec<String>,
 }

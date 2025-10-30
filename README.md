@@ -60,5 +60,19 @@ Enable `default-features = false` and use only `time`-backed types that don't re
 ### Pack spec
 Use `greentic_types::pack_spec::{PackSpec, ToolSpec}` to deserialize `pack.yaml` files shared across Greentic surfaces.
 
+```yaml
+id: greentic.weather.demo
+version: 0.1.0
+flow_files:
+  - flows/weather_bot.ygtc
+imports_required: [secrets.get]
+tools:
+  - name: weather_api
+    source: embedded
+    path: tools/weatherapi.wasm
+```
+
+The `tools` list is optional and primarily for legacy embedded tooling; MCP-first packs can omit it entirely.
+
 ## License
 MIT License. See [LICENSE](LICENSE).

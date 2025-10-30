@@ -6,10 +6,11 @@
 
 extern crate alloc;
 
-#[cfg(feature = "serde")]
 pub mod pack_spec;
 
-#[cfg(feature = "serde")]
+pub mod context;
+
+pub use context::{Cloud, DeploymentCtx, Platform};
 pub use pack_spec::{PackSpec, ToolSpec};
 
 use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
@@ -292,7 +293,7 @@ pub fn make_idempotency_key(
 ) -> String {
     let node_segment = node_id.unwrap_or_default();
     let correlation_segment = correlation
-        .or_else(|| ctx.correlation_id.as_deref())
+        .or(ctx.correlation_id.as_deref())
         .unwrap_or_default();
     let input = format!(
         "{}|{}|{}|{}",
@@ -363,11 +364,12 @@ mod tests {
 
     #[test]
     fn deadline_roundtrips_through_offset_datetime() {
-        let dt = OffsetDateTime::from_unix_timestamp(1_700_000_000).expect("valid timestamp");
+        let dt = OffsetDateTime::from_unix_timestamp(1_700_000_000)
+            .unwrap_or_else(|err| panic!("valid timestamp: {err}"));
         let deadline = InvocationDeadline::from_offset_date_time(dt);
         let roundtrip = deadline
             .to_offset_date_time()
-            .expect("round-trip conversion");
+            .unwrap_or_else(|err| panic!("round-trip conversion failed: {err}"));
         let millis = dt.unix_timestamp_nanos() / 1_000_000;
         assert_eq!(deadline.unix_millis(), millis);
         assert_eq!(roundtrip.unix_timestamp_nanos() / 1_000_000, millis);
@@ -390,9 +392,9 @@ mod tests {
     #[cfg(feature = "std")]
     #[test]
     fn node_error_source_roundtrips() {
-        use std::io::{Error, ErrorKind};
+        use std::io::Error;
 
-        let source = Error::new(ErrorKind::Other, "boom");
+        let source = Error::other("boom");
         let err = NodeError::new("TEST", "example").with_source(source);
         assert!(err.source().is_some());
     }

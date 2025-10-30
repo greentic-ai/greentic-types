@@ -17,3 +17,6 @@ serde = ["dep:serde"]
 [dependencies]
 serde = { version = "1", features = ["derive"], optional = true }
 time = "0.3"
+
+[dev-dependencies]
+serde_yaml = "0.9"
