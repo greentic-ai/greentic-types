@@ -30,10 +30,12 @@ jobs:
         run: |
           set -o pipefail
           temp_log="$(mktemp)"
+          cleanup() { rm -f "$temp_log"; }
+          trap cleanup EXIT
           if cargo publish --locked 2>&1 | tee "$temp_log"; then
             echo "published=true" >> "$GITHUB_OUTPUT"
           else
-            if grep -q "already uploaded" "$temp_log"; then
+            if grep -Ei "already (uploaded|published)|has already been published|already exists" "$temp_log"; then
               echo "crate version already published, skipping upload"
               echo "published=false" >> "$GITHUB_OUTPUT"
             else
