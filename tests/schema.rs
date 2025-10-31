@@ -1,23 +1,31 @@
 #![cfg(feature = "schemars")]
 
 use greentic_types::{Outcome, PackRef, SpanContext, TenantCtx};
-use schemars::{
-    schema::{RootSchema, SchemaObject},
-    schema_for,
-};
+use schemars::{schema_for, JsonSchema};
+use serde_json::Value;
 
-fn definition_names(schema: &RootSchema) -> Vec<String> {
-    schema.definitions.keys().cloned().collect()
+fn schema_value<T: JsonSchema>() -> Value {
+    let schema = schema_for!(T);
+    serde_json::to_value(&schema).expect("schema serializes")
+}
+
+fn defs_keys(value: &Value) -> Vec<String> {
+    value
+        .pointer("/$defs")
+        .or_else(|| value.pointer("/definitions"))
+        .and_then(|defs| defs.as_object())
+        .map(|defs| defs.keys().cloned().collect())
+        .unwrap_or_default()
 }
 
 #[test]
 fn tenant_context_schema_registered() {
-    let schema = schema_for!(TenantCtx);
+    let value = schema_value::<TenantCtx>();
     assert!(
-        schema.schema.object.is_some(),
+        value.is_object(),
         "TenantCtx root schema should be an object"
     );
-    let defs = definition_names(&schema);
+    let defs = defs_keys(&value);
     assert!(
         defs.iter().any(|name| name.contains("Impersonation")),
         "Impersonation definition missing: {defs:?}"
@@ -26,17 +34,17 @@ fn tenant_context_schema_registered() {
 
 #[test]
 fn span_context_schema_has_object() {
-    let schema = schema_for!(SpanContext);
+    let value = schema_value::<SpanContext>();
     assert!(
-        schema.schema.object.is_some(),
+        value.is_object(),
         "SpanContext schema should be an object"
     );
 }
 
 #[test]
 fn pack_schema_includes_signature() {
-    let pack_schema = schema_for!(PackRef);
-    let defs = definition_names(&pack_schema);
+    let value = schema_value::<PackRef>();
+    let defs = defs_keys(&value);
     assert!(
         defs.iter().any(|name| name.contains("Signature")),
         "Signature definition missing: {defs:?}"
@@ -45,11 +53,10 @@ fn pack_schema_includes_signature() {
 
 #[test]
 fn outcome_schema_enumerates_variants() {
-    let root = schema_for!(Outcome<String>);
-    let SchemaObject { subschemas, .. } = root.schema;
-    let variants = subschemas
-        .as_ref()
-        .and_then(|subs| subs.one_of.as_ref())
+    let value = schema_value::<Outcome<String>>();
+    let variants = value
+        .pointer("/oneOf")
+        .and_then(|variants| variants.as_array())
         .map(|list| list.len())
         .unwrap_or_default();
     assert!(variants >= 3, "Outcome schema should declare variants");
