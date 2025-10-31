@@ -35,10 +35,7 @@ fn tenant_context_schema_registered() {
 #[test]
 fn span_context_schema_has_object() {
     let value = schema_value::<SpanContext>();
-    assert!(
-        value.is_object(),
-        "SpanContext schema should be an object"
-    );
+    assert!(value.is_object(), "SpanContext schema should be an object");
 }
 
 #[test]
