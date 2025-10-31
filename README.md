@@ -1,78 +1,125 @@
 # greentic-types
 
-Shared primitives for Greentic runtimes and surfaces to describe tenant-aware executions, normalized invocation envelopes, and structured node errors.
+Shared primitives for Greentic’s next-generation runner, deployer, connectors, packs, and state/session backends.  
+Every repository in the `greentic-ng` stack depends on these types to exchange tenant identity, session cursors, state pointers, policy decisions, pack references, and canonical error/outcome envelopes.
 
-## Features
-- Tenant, team, user, and environment identifiers with optional serde support
-- `TenantCtx` with attempt counters and millisecond deadlines
-- `InvocationEnvelope` shared across messaging, cron, webhook, and runtime surfaces
-- `NodeError` with retry/backoff hints and structured text/binary details
-- Pure-Rust idempotency key helper compatible with `no_std`
+## Crate features
+- `serde` *(default)* – enables serde derives and helpers (pulls `serde_with` for stable semver + base64 encodings).
+- `time` *(default)* – enables `time::OffsetDateTime` helpers for deadlines and telemetry spans.
+- `uuid` – adds UUID-based constructors for session keys.
+- `schemars` – emits JSON Schemas for all public types (used by docs and CI conformance tests).
+- `std` *(default)* – allows attaching source errors to `NodeError`/`GreenticError`.
 
-## Usage
+Disable defaults for fully `no_std` builds:
+```toml
+greentic-types = { version = "0.1.4", default-features = false, features = ["serde"] }
+```
+
+## Quickstart
 ```rust
 use greentic_types::{
-    make_idempotency_key, BinaryPayload, EnvId, InvocationDeadline, InvocationEnvelope, NodeResult,
-    TenantCtx, TenantId,
+    AllowList, EnvId, ErrorCode, Outcome, SessionCursor, SessionKey, TenantCtx, TenantId,
 };
 
-fn example() -> NodeResult<()> {
-    let ctx = TenantCtx {
-        env: EnvId::from("prod"),
-        tenant: TenantId::from("tenant-123"),
-        team: None,
-        user: None,
-        trace_id: Some("trace-1".into()),
-        correlation_id: Some("corr-1".into()),
-        deadline: Some(InvocationDeadline::from_unix_millis(1_700_000_000_000)),
-        attempt: 0,
-        idempotency_key: None,
-    };
+let ctx = TenantCtx::new(EnvId::from("prod"), TenantId::from("tenant-42"))
+    .with_team(Some("team-ops".into()))
+    .with_user(Some("agent-7".into()));
 
-    let payload: BinaryPayload = b"Welcome!".to_vec();
-    let metadata: BinaryPayload = b"platform=email".to_vec();
+let cursor = SessionCursor::new("node.entry")
+    .with_wait_reason("awaiting human input")
+    .with_outbox_marker("handoff");
 
-    let envelope = InvocationEnvelope {
-        ctx: ctx.clone(),
-        flow_id: "welcome-flow".into(),
-        node_id: Some("email-node".into()),
-        op: "on_message".into(),
-        payload,
-        metadata,
-    };
+let require_human: Outcome<()> = Outcome::Pending {
+    reason: "Need operator approval".into(),
+    expected_input: Some(vec!["approval".into()]),
+};
 
-    let generated_key =
-        make_idempotency_key(&ctx, &envelope.flow_id, envelope.node_id.as_deref(), None);
+let allow_policy = AllowList {
+    domains: vec!["api.greentic.ai".into()],
+    ports: vec![443],
+    protocols: vec![greentic_types::Protocol::Https],
+};
 
-    assert_eq!(generated_key.len(), 32);
+assert!(require_human.is_pending());
+assert_eq!(cursor.node_pointer, "node.entry");
+assert!(!allow_policy.is_empty());
+```
+
+### Sessions & telemetry
+```rust
+use greentic_types::{SessionKey, SpanContext};
+
+let session = SessionKey::generate();
+let span = SpanContext::new("tenant-42".into(), "flow-welcome", "runner-core")
+    .with_session(session.clone())
+    .with_node("node.entry");
+```
+
+### Outcomes & errors
+```rust
+use greentic_types::{ErrorCode, GreenticError, Outcome};
+
+fn validate(input: &str) -> greentic_types::GResult<()> {
+    if input.is_empty() {
+        return Err(GreenticError::new(ErrorCode::InvalidInput, "missing payload"));
+    }
     Ok(())
+}
+
+let outcome = match validate("payload") {
+    Ok(_) => Outcome::Done("payload accepted"),
+    Err(err) => Outcome::Error {
+        code: err.code,
+        message: err.message.clone(),
+    },
+};
+```
+
+### Schema generation
+```rust
+#[cfg(feature = "schemars")]
+{
+    let schema = schemars::schema_for!(greentic_types::TenantCtx);
+    println!("{}", serde_json::to_string_pretty(&schema).unwrap());
 }
 ```
 
-## Development
+## Harmonised model
+- **TenantCtx & TenantIdentity** – shared across runner, connectors, and state/session stores; keeps legacy (`tenant`, `team`, `user`) and next-gen (`tenant_id`, `team_id`, `user_id`, `impersonation`) fields aligned.
+- **SessionKey/SessionCursor** – referenced by session routers and state stores.
+- **StateKey/StatePath** – JSON pointer compatible navigation for persisted state.
+- **Outcome<T> & GreenticError** – canonical execution envelope for nodes, adapters, and tools.
+- **AllowList/NetworkPolicy & PolicyDecision** – security model used by deployer and connector sandboxes.
+- **PackRef/Signature** – pack registry references with deterministic semver + base64 signatures.
+- **SpanContext** – OTLP-aligned telemetry context (tenant, flow, node, provider, start/end).
+
+## Working with other crates
+- `greentic-runner`, `greentic-session-store`, `greentic-state-store`, `greentic-deployer`, `greentic-connectors`, and `greentic-packs` depend on this crate. Always add new shared types here first to avoid duplication.
+- ABI/WIT contracts live in **greentic-interfaces**; never re-define those types here.
+
+## Development workflow
 ```bash
-cargo test
+cargo fmt --all
+cargo clippy --all-targets -- -D warnings
+cargo test --all-features
 ```
 
-### no_std
-Enable `default-features = false` and use only `time`-backed types that don't require alloc-heavy helpers.
+CI (see `.github/workflows/publish.yml`) enforces the same gates on push/PR. Legacy `v*` tags still trigger the workflow alongside per-crate tags.
 
-### Pack spec
-Use `greentic_types::pack_spec::{PackSpec, ToolSpec}` to deserialize `pack.yaml` files shared across Greentic surfaces.
+## Maintenance notes
+- All public structs derive `schemars::JsonSchema` when the feature is enabled; integration tests assert schema registration and serde round-trips.
+- `GResult<T>` aliases `Result<T, GreenticError>` for consistent error propagation.
+- Prefer zero-copy APIs; the crate is `#![forbid(unsafe_code)]`.
+- Use feature flags to keep downstream binaries lightweight (e.g., disable `uuid` in constrained connectors).
 
-```yaml
-id: greentic.weather.demo
-version: 0.1.0
-flow_files:
-  - flows/weather_bot.ygtc
-imports_required: [secrets.get]
-tools:
-  - name: weather_api
-    source: embedded
-    path: tools/weatherapi.wasm
-```
+## Releases & Publishing
+- Versions come directly from each crate’s `Cargo.toml`.
+- Pushing to `master` tags any crate whose version changed in that commit using `<crate-name>-v<semver>`.
+- After tagging (or even when no tags are created), the publish workflow attempts to publish all changed crates via `katyo/publish-crates@v2`.
+- Publishing is idempotent; attempting to release the same version again succeeds without errors.
 
-The `tools` list is optional and primarily for legacy embedded tooling; MCP-first packs can omit it entirely.
+## Pack specifications
+Legacy pack manifests remain available via `greentic_types::pack_spec::{PackSpec, ToolSpec}` for backwards compatibility during the MCP migration. New packs should still embed their contracts in `greentic-interfaces`.
 
 ## License
 MIT License. See [LICENSE](LICENSE).

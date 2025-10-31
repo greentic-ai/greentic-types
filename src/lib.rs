@@ -9,12 +9,31 @@ extern crate alloc;
 pub mod pack_spec;
 
 pub mod context;
+pub mod error;
+pub mod outcome;
+pub mod pack;
+pub mod policy;
+pub mod session;
+pub mod state;
+pub mod telemetry;
+pub mod tenant;
 
 pub use context::{Cloud, DeploymentCtx, Platform};
+pub use error::{ErrorCode, GResult, GreenticError};
+pub use outcome::Outcome;
+pub use pack::{PackRef, Signature, SignatureAlgorithm};
 pub use pack_spec::{PackSpec, ToolSpec};
+pub use policy::{AllowList, NetworkPolicy, PolicyDecision, Protocol};
+pub use session::{SessionCursor, SessionKey};
+pub use state::{StateKey, StatePath};
+pub use telemetry::SpanContext;
+pub use tenant::{Impersonation, TenantIdentity};
 
 use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
 use core::fmt;
+#[cfg(feature = "schemars")]
+use schemars::JsonSchema;
+#[cfg(feature = "time")]
 use time::OffsetDateTime;
 
 #[cfg(feature = "serde")]
@@ -31,6 +50,8 @@ macro_rules! id_newtype {
         #[doc = $doc]
         #[derive(Clone, Debug, Eq, PartialEq, Hash)]
         #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+        #[cfg_attr(feature = "schemars", derive(JsonSchema))]
+        #[cfg_attr(feature = "serde", serde(transparent))]
         pub struct $name(pub String);
 
         impl $name {
@@ -78,8 +99,9 @@ id_newtype!(TeamId, "Team identifier belonging to a tenant.");
 id_newtype!(UserId, "User identifier within a tenant.");
 
 /// Deadline metadata for an invocation, stored as Unix epoch milliseconds.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct InvocationDeadline {
     unix_millis: i128,
 }
@@ -96,11 +118,13 @@ impl InvocationDeadline {
     }
 
     /// Converts the deadline into an [`OffsetDateTime`].
+    #[cfg(feature = "time")]
     pub fn to_offset_date_time(&self) -> Result<OffsetDateTime, time::error::ComponentRange> {
         OffsetDateTime::from_unix_timestamp_nanos(self.unix_millis * 1_000_000)
     }
 
     /// Creates a deadline from an [`OffsetDateTime`], truncating to milliseconds.
+    #[cfg(feature = "time")]
     pub fn from_offset_date_time(value: OffsetDateTime) -> Self {
         let nanos = value.unix_timestamp_nanos();
         Self {
@@ -110,30 +134,88 @@ impl InvocationDeadline {
 }
 
 /// Context that accompanies every invocation across Greentic runtimes.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct TenantCtx {
     /// Environment scope (for example `dev`, `staging`, or `prod`).
     pub env: EnvId,
     /// Tenant identifier for the current execution.
     pub tenant: TenantId,
+    /// Stable tenant identifier reference used across systems.
+    pub tenant_id: TenantId,
     /// Optional team identifier scoped to the tenant.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub team: Option<TeamId>,
+    /// Optional team identifier accessible via the shared schema.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub team_id: Option<TeamId>,
     /// Optional user identifier scoped to the tenant.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub user: Option<UserId>,
+    /// Optional user identifier aligned with the shared schema.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub user_id: Option<UserId>,
     /// Distributed tracing identifier when available.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub trace_id: Option<String>,
     /// Correlation identifier for linking related events.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub correlation_id: Option<String>,
     /// Deadline when the invocation should finish.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub deadline: Option<InvocationDeadline>,
     /// Attempt counter for retried invocations (starting at zero).
     pub attempt: u32,
     /// Stable idempotency key propagated across retries.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub idempotency_key: Option<String>,
+    /// Optional impersonation context describing the acting identity.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub impersonation: Option<Impersonation>,
 }
 
 impl TenantCtx {
+    /// Creates a new tenant context with the provided environment and tenant identifiers.
+    pub fn new(env: EnvId, tenant: TenantId) -> Self {
+        let tenant_id = tenant.clone();
+        Self {
+            env,
+            tenant: tenant.clone(),
+            tenant_id,
+            team: None,
+            team_id: None,
+            user: None,
+            user_id: None,
+            trace_id: None,
+            correlation_id: None,
+            deadline: None,
+            attempt: 0,
+            idempotency_key: None,
+            impersonation: None,
+        }
+    }
+
+    /// Updates the team information ensuring legacy and shared fields stay aligned.
+    pub fn with_team(mut self, team: Option<TeamId>) -> Self {
+        self.team = team.clone();
+        self.team_id = team;
+        self
+    }
+
+    /// Updates the user information ensuring legacy and shared fields stay aligned.
+    pub fn with_user(mut self, user: Option<UserId>) -> Self {
+        self.user = user.clone();
+        self.user_id = user;
+        self
+    }
+
+    /// Sets the impersonation context.
+    pub fn with_impersonation(mut self, impersonation: Option<Impersonation>) -> Self {
+        self.impersonation = impersonation;
+        self
+    }
+
     /// Returns a copy of the context with the provided attempt value.
     pub fn with_attempt(mut self, attempt: u32) -> Self {
         self.attempt = attempt;
@@ -153,6 +235,7 @@ pub type BinaryPayload = Vec<u8>;
 /// Normalized ingress payload delivered to nodes.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct InvocationEnvelope {
     /// Tenant context for the invocation.
     pub ctx: TenantCtx,
@@ -171,6 +254,7 @@ pub struct InvocationEnvelope {
 /// Structured detail payload attached to a node error.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub enum ErrorDetail {
     /// UTF-8 encoded detail payload.
     Text(String),
@@ -181,6 +265,7 @@ pub enum ErrorDetail {
 /// Error type emitted by Greentic nodes.
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct NodeError {
     /// Machine readable error code.
     pub code: String,
@@ -194,6 +279,7 @@ pub struct NodeError {
     pub details: Option<ErrorDetail>,
     #[cfg(feature = "std")]
     #[cfg_attr(feature = "serde", serde(skip, default = "default_source"))]
+    #[cfg_attr(feature = "schemars", schemars(skip))]
     source: Option<Box<dyn StdError + Send + Sync>>,
 }
 
@@ -297,7 +383,7 @@ pub fn make_idempotency_key(
         .unwrap_or_default();
     let input = format!(
         "{}|{}|{}|{}",
-        ctx.tenant.as_str(),
+        ctx.tenant_id.as_str(),
         flow_id,
         node_segment,
         correlation_segment
@@ -332,17 +418,17 @@ mod tests {
     use time::OffsetDateTime;
 
     fn sample_ctx() -> TenantCtx {
-        TenantCtx {
-            env: EnvId::from("prod"),
-            tenant: TenantId::from("tenant-123"),
-            team: Some(TeamId::from("team-456")),
-            user: Some(UserId::from("user-789")),
-            trace_id: Some("trace-abc".to_owned()),
-            correlation_id: Some("corr-xyz".to_owned()),
-            deadline: Some(InvocationDeadline::from_unix_millis(1_700_000_000_000)),
-            attempt: 2,
-            idempotency_key: Some("key-123".to_owned()),
-        }
+        let mut ctx = TenantCtx::new(EnvId::from("prod"), TenantId::from("tenant-123"))
+            .with_team(Some(TeamId::from("team-456")))
+            .with_user(Some(UserId::from("user-789")))
+            .with_attempt(2)
+            .with_deadline(Some(InvocationDeadline::from_unix_millis(
+                1_700_000_000_000,
+            )));
+        ctx.trace_id = Some("trace-abc".to_owned());
+        ctx.correlation_id = Some("corr-xyz".to_owned());
+        ctx.idempotency_key = Some("key-123".to_owned());
+        ctx
     }
 
     #[test]
@@ -363,6 +449,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "time")]
     fn deadline_roundtrips_through_offset_datetime() {
         let dt = OffsetDateTime::from_unix_timestamp(1_700_000_000)
             .unwrap_or_else(|err| panic!("valid timestamp: {err}"));
