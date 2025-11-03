@@ -21,10 +21,11 @@ tools:
     let spec: PackSpec = serde_yaml_bw::from_str(doc).expect("valid pack spec");
     assert_eq!(spec.id, "greentic.weather.demo");
     assert_eq!(spec.version, "0.1.0");
-    assert!(spec
-        .flow_files
-        .iter()
-        .any(|f| f.ends_with("weather_bot.ygtc")));
+    assert!(
+        spec.flow_files
+            .iter()
+            .any(|f| f.ends_with("weather_bot.ygtc"))
+    );
     assert!(spec.template_dirs.iter().any(|d| d == "templates/"));
 
     let serialized = serde_yaml_bw::to_string(&spec).expect("serialize");

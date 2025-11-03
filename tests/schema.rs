@@ -1,7 +1,7 @@
 #![cfg(feature = "schemars")]
 
 use greentic_types::{Outcome, PackRef, SpanContext, TenantCtx};
-use schemars::{schema_for, JsonSchema};
+use schemars::{JsonSchema, schema_for};
 use serde_json::Value;
 
 fn schema_value<T: JsonSchema>() -> Value {

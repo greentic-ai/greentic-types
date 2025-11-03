@@ -6,8 +6,8 @@ use greentic_types::{
     StateKey, StatePath, TenantCtx, TenantIdentity,
 };
 use semver::Version;
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 
 #[cfg(feature = "time")]
 use time::OffsetDateTime;
