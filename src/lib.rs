@@ -27,6 +27,8 @@ pub use policy::{AllowList, NetworkPolicy, PolicyDecision, Protocol};
 pub use session::{SessionCursor, SessionKey};
 pub use state::{StateKey, StatePath};
 pub use telemetry::SpanContext;
+#[cfg(feature = "telemetry-autoinit")]
+pub use telemetry::TelemetryCtx;
 pub use tenant::{Impersonation, TenantIdentity};
 
 use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
@@ -156,6 +158,18 @@ pub struct TenantCtx {
     /// Optional user identifier aligned with the shared schema.
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub user_id: Option<UserId>,
+    /// Optional session identifier propagated by the runtime.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub session_id: Option<String>,
+    /// Optional flow identifier for the current execution.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub flow_id: Option<String>,
+    /// Optional node identifier within the flow.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub node_id: Option<String>,
+    /// Optional provider identifier describing the runtime surface.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub provider_id: Option<String>,
     /// Distributed tracing identifier when available.
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub trace_id: Option<String>,
@@ -187,6 +201,10 @@ impl TenantCtx {
             team_id: None,
             user: None,
             user_id: None,
+            session_id: None,
+            flow_id: None,
+            node_id: None,
+            provider_id: None,
             trace_id: None,
             correlation_id: None,
             deadline: None,
@@ -210,6 +228,30 @@ impl TenantCtx {
         self
     }
 
+    /// Updates the session identifier.
+    pub fn with_session(mut self, session: impl Into<String>) -> Self {
+        self.session_id = Some(session.into());
+        self
+    }
+
+    /// Updates the flow identifier.
+    pub fn with_flow(mut self, flow: impl Into<String>) -> Self {
+        self.flow_id = Some(flow.into());
+        self
+    }
+
+    /// Updates the node identifier.
+    pub fn with_node(mut self, node: impl Into<String>) -> Self {
+        self.node_id = Some(node.into());
+        self
+    }
+
+    /// Updates the provider identifier.
+    pub fn with_provider(mut self, provider: impl Into<String>) -> Self {
+        self.provider_id = Some(provider.into());
+        self
+    }
+
     /// Sets the impersonation context.
     pub fn with_impersonation(mut self, impersonation: Option<Impersonation>) -> Self {
         self.impersonation = impersonation;
@@ -226,6 +268,26 @@ impl TenantCtx {
     pub fn with_deadline(mut self, deadline: Option<InvocationDeadline>) -> Self {
         self.deadline = deadline;
         self
+    }
+
+    /// Returns the session identifier, when present.
+    pub fn session_id(&self) -> Option<&str> {
+        self.session_id.as_deref()
+    }
+
+    /// Returns the flow identifier, when present.
+    pub fn flow_id(&self) -> Option<&str> {
+        self.flow_id.as_deref()
+    }
+
+    /// Returns the node identifier, when present.
+    pub fn node_id(&self) -> Option<&str> {
+        self.node_id.as_deref()
+    }
+
+    /// Returns the provider identifier, when present.
+    pub fn provider_id(&self) -> Option<&str> {
+        self.provider_id.as_deref()
     }
 }
 

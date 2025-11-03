@@ -5,11 +5,16 @@ mod span_context;
 pub use span_context::SpanContext;
 
 #[cfg(feature = "telemetry-autoinit")]
+use alloc::{boxed::Box, vec::Vec};
+#[cfg(feature = "telemetry-autoinit")]
+use greentic_telemetry::set_current_telemetry_ctx;
+#[cfg(feature = "telemetry-autoinit")]
+use tracing_subscriber::{Registry, layer::Layer};
+
+#[cfg(feature = "telemetry-autoinit")]
 pub use greentic_telemetry::init::TelemetryError;
 #[cfg(feature = "telemetry-autoinit")]
-pub use greentic_telemetry::{
-    OtlpConfig, TelemetryCtx, init_otlp, layer_from_task_local, set_current_tenant_ctx,
-};
+pub use greentic_telemetry::{OtlpConfig, TelemetryCtx, init_otlp, layer_from_task_local};
 #[cfg(feature = "telemetry-autoinit")]
 pub use greentic_types_macros::main;
 #[cfg(feature = "telemetry-autoinit")]
@@ -19,20 +24,37 @@ pub use tokio::main as __tokio_main;
 #[cfg(feature = "telemetry-autoinit")]
 /// Installs the default Greentic telemetry stack using OTLP + task-local context injection.
 pub fn install_telemetry(service_name: &str) -> Result<(), TelemetryError> {
-    use alloc::boxed::Box;
-
     let endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT")
         .unwrap_or_else(|_| "http://localhost:4317".into());
-    let layer: Box<
-        dyn tracing_subscriber::layer::Layer<tracing_subscriber::Registry> + Send + Sync + 'static,
-    > = Box::new(layer_from_task_local());
+
+    let mut layers: Vec<Box<dyn Layer<Registry> + Send + Sync + 'static>> = Vec::new();
+    layers.push(Box::new(layer_from_task_local()));
 
     init_otlp(
         OtlpConfig {
+            service_name: service_name.to_string(),
             endpoint,
-            service_name: service_name.into(),
             insecure: true,
         },
-        vec![layer],
+        layers,
     )
+}
+
+#[cfg(feature = "telemetry-autoinit")]
+/// Stores the tenant context into the task-local telemetry slot.
+pub fn set_current_tenant_ctx(ctx: &crate::TenantCtx) {
+    let mut telemetry = TelemetryCtx::default().with_tenant(ctx.tenant_id.as_ref());
+    if let Some(session) = ctx.session_id() {
+        telemetry = telemetry.with_session(session);
+    }
+    if let Some(flow) = ctx.flow_id() {
+        telemetry = telemetry.with_flow(flow);
+    }
+    if let Some(node) = ctx.node_id() {
+        telemetry = telemetry.with_node(node);
+    }
+    if let Some(provider) = ctx.provider_id() {
+        telemetry = telemetry.with_provider(provider);
+    }
+    set_current_telemetry_ctx(telemetry);
 }

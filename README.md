@@ -89,21 +89,21 @@ let outcome = match validate("payload") {
 - `#[greentic_types::telemetry::main(...)]` wraps `tokio::main`, installs OTLP once, and forwards to your async main.
 - `install_telemetry("name")` is available if you need to wire custom runtimes or tests manually.
 - Uses `OTEL_EXPORTER_OTLP_ENDPOINT` when set (defaults to `http://localhost:4317`).
+- `set_current_tenant_ctx(&TenantCtx)` maps the current tenant into the task-local telemetry slot.
 
 ```rust
-use greentic_types::telemetry::{set_current_tenant_ctx, TelemetryCtx};
+use greentic_types::{EnvId, TenantCtx, TenantId};
+use greentic_types::telemetry::set_current_tenant_ctx;
 
 #[greentic_types::telemetry::main(service_name = "greentic-runner")]
 async fn main() -> anyhow::Result<()> {
-    set_current_tenant_ctx(
-        TelemetryCtx::default()
-            .with_tenant("greentic-acme")
-            .with_session("session-1")
-            .with_flow("flow-42")
-            .with_node("node.router")
-            .with_provider("runner"),
-    );
-    tracing::info!("telemetry ready");
+    let ctx = TenantCtx::new(EnvId::from("prod"), TenantId::from("acme"))
+        .with_session("s1")
+        .with_flow("hello")
+        .with_node("qa-1")
+        .with_provider("runner");
+    set_current_tenant_ctx(&ctx);
+    tracing::info!("tenant-aware spans now have gt.* attrs");
     Ok(())
 }
 ```
