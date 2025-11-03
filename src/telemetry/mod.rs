@@ -27,14 +27,14 @@ pub fn install_telemetry(service_name: &str) -> Result<(), TelemetryError> {
     let endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT")
         .unwrap_or_else(|_| "http://localhost:4317".into());
 
-    let mut layers: Vec<Box<dyn Layer<Registry> + Send + Sync + 'static>> = Vec::new();
-    layers.push(Box::new(layer_from_task_local()));
+    let layers: Vec<Box<dyn Layer<Registry> + Send + Sync + 'static>> =
+        vec![Box::new(layer_from_task_local())];
 
     init_otlp(
         OtlpConfig {
             service_name: service_name.to_string(),
-            endpoint,
-            insecure: true,
+            endpoint: Some(endpoint),
+            sampling_rate: None,
         },
         layers,
     )
@@ -43,7 +43,7 @@ pub fn install_telemetry(service_name: &str) -> Result<(), TelemetryError> {
 #[cfg(feature = "telemetry-autoinit")]
 /// Stores the tenant context into the task-local telemetry slot.
 pub fn set_current_tenant_ctx(ctx: &crate::TenantCtx) {
-    let mut telemetry = TelemetryCtx::default().with_tenant(ctx.tenant_id.as_ref());
+    let mut telemetry = TelemetryCtx::new(ctx.tenant_id.as_ref());
     if let Some(session) = ctx.session_id() {
         telemetry = telemetry.with_session(session);
     }
