@@ -47,7 +47,7 @@ serde_with = { version = "3", default-features = false, features = ["macros", "b
 thiserror = "2"
 time = { version = "0.3", features = ["formatting", "macros", "parsing", "serde"], optional = true }
 uuid = { version = "1", features = ["v4", "serde"], optional = true }
-greentic-telemetry = { version = "0.2", path = "../greentic-telemetry", optional = true }
+greentic-telemetry = { version = "0.2", optional = true }
 greentic-types-macros = { version = "0.2", path = "greentic-types-macros", optional = true }
 opentelemetry-otlp = { version = "0.31", optional = true }
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"], optional = true }

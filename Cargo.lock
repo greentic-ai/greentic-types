@@ -260,6 +260,8 @@ dependencies = [
 [[package]]
 name = "greentic-telemetry"
 version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4de9452812a17516ecd066c0e1cac172233ecce3101ee6547dd0772f4a45ade9"
 dependencies = [
  "greentic-types 0.2.0",
  "once_cell",
@@ -345,18 +347,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "hashbrown"
-version = "0.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5419bdc4f6a9207fbeba6d11b604d481addf78ecd10c11ad51e76c2f6482748d"
-
-[[package]]
 name = "hashlink"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7382cf6263419f2d8df38c55d7da83da5c18aef87fc7a7fc1fb1e344edfe14c1"
 dependencies = [
- "hashbrown 0.15.5",
+ "hashbrown",
 ]
 
 [[package]]
@@ -579,7 +575,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b0f83760fb341a774ed326568e19f5a863af4a952def8c39f9ab92fd95b88e5"
 dependencies = [
  "equivalent",
- "hashbrown 0.16.0",
+ "hashbrown",
 ]
 
 [[package]]
