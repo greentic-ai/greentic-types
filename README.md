@@ -84,6 +84,30 @@ let outcome = match validate("payload") {
 }
 ```
 
+## Telemetry (auto-init)
+- Enable with `features = ["telemetry-autoinit"]` to bundle the OTLP stack and entry-point macro.
+- `#[greentic_types::telemetry::main(...)]` wraps `tokio::main`, installs OTLP once, and forwards to your async main.
+- `install_telemetry("name")` is available if you need to wire custom runtimes or tests manually.
+- Uses `OTEL_EXPORTER_OTLP_ENDPOINT` when set (defaults to `http://localhost:4317`).
+
+```rust
+use greentic_types::telemetry::{set_current_tenant_ctx, TelemetryCtx};
+
+#[greentic_types::telemetry::main(service_name = "greentic-runner")]
+async fn main() -> anyhow::Result<()> {
+    set_current_tenant_ctx(
+        TelemetryCtx::default()
+            .with_tenant("greentic-acme")
+            .with_session("session-1")
+            .with_flow("flow-42")
+            .with_node("node.router")
+            .with_provider("runner"),
+    );
+    tracing::info!("telemetry ready");
+    Ok(())
+}
+```
+
 ## Harmonised model
 - **TenantCtx & TenantIdentity** – shared across runner, connectors, and state/session stores; keeps legacy (`tenant`, `team`, `user`) and next-gen (`tenant_id`, `team_id`, `user_id`, `impersonation`) fields aligned.
 - **SessionKey/SessionCursor** – referenced by session routers and state stores.

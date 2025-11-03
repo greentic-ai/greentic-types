@@ -1,6 +1,8 @@
-[package]
-name = "greentic-types"
-version = "0.2.0"
+[workspace]
+members = ["greentic-types-macros"]
+
+[workspace.package]
+version = "0.2.1"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/greentic-ai/greentic-types"
@@ -9,6 +11,17 @@ description = "Shared primitives for Greentic: TenantCtx, InvocationEnvelope, No
 keywords = ["greentic","tenant","ctx","envelope","wasm"]
 categories = ["data-structures","config"]
 
+[package]
+name = "greentic-types"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+readme.workspace = true
+description.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
 [features]
 default = ["std", "serde", "time"]
 std = []
@@ -16,6 +29,15 @@ serde = ["dep:serde", "dep:serde_with"]
 time = ["dep:time"]
 uuid = ["dep:uuid"]
 schemars = ["dep:schemars", "serde"]
+telemetry-autoinit = [
+    "std",
+    "dep:greentic-telemetry",
+    "dep:tracing",
+    "dep:tracing-subscriber",
+    "dep:opentelemetry-otlp",
+    "dep:tokio",
+    "dep:greentic-types-macros",
+]
 
 [dependencies]
 schemars = { version = "1", features = ["derive"], optional = true }
@@ -25,6 +47,12 @@ serde_with = { version = "3", default-features = false, features = ["macros", "b
 thiserror = "2"
 time = { version = "0.3", features = ["formatting", "macros", "parsing", "serde"], optional = true }
 uuid = { version = "1", features = ["v4", "serde"], optional = true }
+greentic-telemetry = { version = "0.2", path = "../greentic-telemetry", optional = true }
+greentic-types-macros = { version = "0.2", path = "greentic-types-macros", optional = true }
+opentelemetry-otlp = { version = "0.31", optional = true }
+tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"], optional = true }
+tracing = { version = "0.1", optional = true }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["registry", "std"], optional = true }
 
 [dev-dependencies]
 schemars = { version = "1", features = ["derive"] }

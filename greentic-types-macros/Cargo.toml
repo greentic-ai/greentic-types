@@ -1,0 +1,15 @@
+[package]
+name = "greentic-types-macros"
+version.workspace = true
+edition.workspace = true
+description = "Proc-macros extending greentic-types ergonomics."
+license.workspace = true
+repository.workspace = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1"
+quote = "1"
+syn = { version = "2", features = ["full"] }
