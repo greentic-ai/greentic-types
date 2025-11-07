@@ -144,6 +144,31 @@ cargo clippy --all-targets -- -D warnings
 cargo test --all-features
 ```
 
+### Local CI mirror
+Before pushing, run the bundled CI mirror which replicates the GitHub Actions steps:
+
+```bash
+ci/local_check.sh
+```
+
+Toggles:
+
+- `LOCAL_CHECK_ONLINE=1` – enable networked checks (schema URL curl).
+- `LOCAL_CHECK_STRICT=1` – fail when required tools (rustup, curl, etc.) are missing.
+- `LOCAL_CHECK_VERBOSE=1` – print every command before it runs.
+
+Example:
+
+```bash
+LOCAL_CHECK_ONLINE=1 LOCAL_CHECK_STRICT=1 ci/local_check.sh
+```
+
+Tip: add a Git hook to run it automatically:
+
+```bash
+ln -s ../../ci/local_check.sh .git/hooks/pre-push
+```
+
 CI (see `.github/workflows/publish.yml`) enforces the same gates on push/PR. Legacy `v*` tags still trigger the workflow alongside per-crate tags.
 
 ## Maintenance notes
