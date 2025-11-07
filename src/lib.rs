@@ -91,6 +91,8 @@ pub use telemetry::SpanContext;
 pub use telemetry::TelemetryCtx;
 pub use tenant::{Impersonation, TenantIdentity};
 
+#[cfg(feature = "schemars")]
+use alloc::borrow::Cow;
 use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
 use core::fmt;
 use core::str::FromStr;
