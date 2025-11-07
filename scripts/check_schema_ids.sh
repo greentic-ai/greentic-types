@@ -26,14 +26,37 @@ SCHEMAS=(
 
 for url in "${SCHEMAS[@]}"; do
   echo "Checking schema $url"
-  body=$(curl -fsS "$url")
-  schema_id=$(python3 - <<'PY'
-import json, sys
-print(json.loads(sys.stdin.read()).get("$id", ""))
+  tmp=$(mktemp)
+  status=$(curl -sS -w "%{http_code}" -o "$tmp" "$url") || {
+    echo "Failed to download $url" >&2
+    rm -f "$tmp"
+    exit 1
+  }
+  if [[ "$status" != "200" ]]; then
+    echo "Schema $url responded with HTTP $status" >&2
+    rm -f "$tmp"
+    exit 1
+  fi
+
+  schema_id=$(python3 - "$tmp" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+try:
+    data = json.loads(path.read_text())
+except json.JSONDecodeError as exc:
+    print(f"Failed to parse {path}: {exc}", file=sys.stderr)
+    sys.exit(1)
+
+print(data.get("$id", ""))
 PY
-<<<"$body")
+  )
+  rm -f "$tmp"
+
   if [[ "$schema_id" != "$url" ]]; then
-    echo "Schema $url has mismatched $id ('$schema_id')" >&2
+    echo "Schema $url has mismatched \$id ('$schema_id')" >&2
     exit 1
   fi
   echo "✔ $url"
