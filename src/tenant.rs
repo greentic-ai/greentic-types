@@ -7,7 +7,7 @@ use schemars::JsonSchema;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use crate::{TeamId, TenantCtx, TenantId, UserId};
+use crate::{TeamId, TenantContext, TenantCtx, TenantId, UserId};
 
 /// Metadata describing an impersonated user acting on behalf of the main identity.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -78,6 +78,11 @@ impl TenantCtx {
     /// Returns the tenant identity derived from this context.
     pub fn identity(&self) -> TenantIdentity {
         TenantIdentity::from(self)
+    }
+
+    /// Returns the lightweight tenant context shared with tooling.
+    pub fn tenant_context(&self) -> TenantContext {
+        TenantContext::from(self)
     }
 
     /// Returns the impersonation context, when present.

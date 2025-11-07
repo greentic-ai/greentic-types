@@ -19,10 +19,28 @@ jobs:
           cargo clippy --workspace --all-targets -- -D warnings
           cargo build --workspace --all-features
           cargo test --workspace --all-features -- --nocapture
+      - name: Prevent duplicate shared structs
+        run: ./scripts/deny_dupes.sh
+      - name: Verify published schema IDs
+        run: ./scripts/check_schema_ids.sh
+
+  msrv:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        profile:
+          - { name: default, args: "" }
+          - { name: schema, args: "--features schema" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.85.0
+      - uses: Swatinem/rust-cache@v2
+      - name: Cargo check (${{ matrix.profile.name }})
+        run: cargo check --workspace ${{ matrix.profile.args }}
 
   publish:
     if: github.event_name == 'push'
-    needs: build-test
+    needs: [build-test, msrv]
     runs-on: ubuntu-latest
     permissions:
       contents: read

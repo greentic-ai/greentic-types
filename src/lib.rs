@@ -1,11 +1,60 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
-#![warn(missing_docs, clippy::unwrap_used, clippy::expect_used)]
+#![deny(missing_docs)]
+#![warn(clippy::unwrap_used, clippy::expect_used)]
 
 //! Shared types and helpers for Greentic multi-tenant flows.
+//!
+//! # Overview
+//! Greentic components share a single crate for tenancy, execution outcomes, network limits, and
+//! schema metadata. Use the strongly-typed identifiers to keep flows, packs, and components
+//! consistent across repositories and to benefit from serde + schema validation automatically.
+//!
+//! ## Tenant contexts
+//! ```
+//! use greentic_types::{EnvId, TenantCtx, TenantId};
+//!
+//! let ctx = TenantCtx::new("prod".parse().unwrap(), "tenant-42".parse().unwrap())
+//!     .with_team(Some("team-ops".parse().unwrap()))
+//!     .with_user(Some("agent-007".parse().unwrap()));
+//! assert_eq!(ctx.tenant_id.as_str(), "tenant-42");
+//! ```
+//!
+//! ## Run results & serialization
+//! ```
+//! # #[cfg(feature = "time")] {
+//! use greentic_types::{FlowId, PackId, RunResult, RunStatus, SessionKey};
+//! use semver::Version;
+//! use time::OffsetDateTime;
+//!
+//! let now = OffsetDateTime::UNIX_EPOCH;
+//! let result = RunResult {
+//!     session_id: SessionKey::from("sess-1"),
+//!     pack_id: "greentic.demo.pack".parse().unwrap(),
+//!     pack_version: Version::parse("1.0.0").unwrap(),
+//!     flow_id: "demo-flow".parse().unwrap(),
+//!     started_at_utc: now,
+//!     finished_at_utc: now,
+//!     status: RunStatus::Success,
+//!     node_summaries: Vec::new(),
+//!     failures: Vec::new(),
+//!     artifacts_dir: None,
+//! };
+//! println!("{}", serde_json::to_string_pretty(&result).unwrap());
+//! # }
+//! ```
+//!
+//! Published JSON Schemas are listed in [`SCHEMAS.md`](SCHEMAS.md) and hosted under
+//! <https://greentic-ai.github.io/greentic-types/schemas/v1/>.
 
 extern crate alloc;
 
+/// Crate version string exposed for telemetry and capability negotiation.
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+/// Base URL for all published JSON Schemas.
+pub const SCHEMA_BASE_URL: &str = "https://greentic-ai.github.io/greentic-types/schemas/v1";
+
+pub mod capabilities;
 pub mod pack_spec;
 
 pub mod context;
@@ -13,19 +62,30 @@ pub mod error;
 pub mod outcome;
 pub mod pack;
 pub mod policy;
+pub mod run;
+#[cfg(all(feature = "schemars", feature = "std"))]
+pub mod schema;
 pub mod session;
 pub mod state;
 pub mod telemetry;
 pub mod tenant;
 
+pub use capabilities::{
+    Capabilities, FsCaps, HttpCaps, KvCaps, Limits, NetCaps, SecretsCaps, TelemetrySpec, ToolsCaps,
+};
 pub use context::{Cloud, DeploymentCtx, Platform};
 pub use error::{ErrorCode, GResult, GreenticError};
 pub use outcome::Outcome;
 pub use pack::{PackRef, Signature, SignatureAlgorithm};
 pub use pack_spec::{PackSpec, ToolSpec};
 pub use policy::{AllowList, NetworkPolicy, PolicyDecision, Protocol};
+#[cfg(feature = "time")]
+pub use run::RunResult;
+pub use run::{NodeFailure, NodeStatus, NodeSummary, RunStatus, TranscriptOffset};
 pub use session::{SessionCursor, SessionKey};
 pub use state::{StateKey, StatePath};
+#[cfg(feature = "otel-keys")]
+pub use telemetry::OtlpKeys;
 pub use telemetry::SpanContext;
 #[cfg(feature = "telemetry-autoinit")]
 pub use telemetry::TelemetryCtx;
@@ -33,8 +93,10 @@ pub use tenant::{Impersonation, TenantIdentity};
 
 use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
 use core::fmt;
+use core::str::FromStr;
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
+use semver::VersionReq;
 #[cfg(feature = "time")]
 use time::OffsetDateTime;
 
@@ -47,13 +109,121 @@ use alloc::boxed::Box;
 #[cfg(feature = "std")]
 use std::error::Error as StdError;
 
+fn validate_identifier(value: &str, label: &str) -> GResult<()> {
+    if value.is_empty() {
+        return Err(GreenticError::new(
+            ErrorCode::InvalidInput,
+            format!("{label} must not be empty"),
+        ));
+    }
+    if value
+        .chars()
+        .any(|c| !(c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-')))
+    {
+        return Err(GreenticError::new(
+            ErrorCode::InvalidInput,
+            format!("{label} must contain only ASCII letters, digits, '.', '-', or '_'"),
+        ));
+    }
+    Ok(())
+}
+
+/// Canonical schema IDs for the exported document types.
+pub mod ids {
+    /// Pack identifier schema.
+    pub const PACK_ID: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/pack-id.schema.json";
+    /// Component identifier schema.
+    pub const COMPONENT_ID: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/component-id.schema.json";
+    /// Flow identifier schema.
+    pub const FLOW_ID: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/flow-id.schema.json";
+    /// Node identifier schema.
+    pub const NODE_ID: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/node-id.schema.json";
+    /// Tenant context schema.
+    pub const TENANT_CONTEXT: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/tenant-context.schema.json";
+    /// Hash digest schema.
+    pub const HASH_DIGEST: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/hash-digest.schema.json";
+    /// Semantic version requirement schema.
+    pub const SEMVER_REQ: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/semver-req.schema.json";
+    /// Redaction path schema.
+    pub const REDACTION_PATH: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/redaction-path.schema.json";
+    /// Capabilities schema.
+    pub const CAPABILITIES: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/capabilities.schema.json";
+    /// Limits schema.
+    pub const LIMITS: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/limits.schema.json";
+    /// Telemetry spec schema.
+    pub const TELEMETRY_SPEC: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/telemetry-spec.schema.json";
+    /// Node summary schema.
+    pub const NODE_SUMMARY: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/node-summary.schema.json";
+    /// Node failure schema.
+    pub const NODE_FAILURE: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/node-failure.schema.json";
+    /// Node status schema.
+    pub const NODE_STATUS: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/node-status.schema.json";
+    /// Run status schema.
+    pub const RUN_STATUS: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/run-status.schema.json";
+    /// Transcript offset schema.
+    pub const TRANSCRIPT_OFFSET: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/transcript-offset.schema.json";
+    /// Tools capability schema.
+    pub const TOOLS_CAPS: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/tools-caps.schema.json";
+    /// Secrets capability schema.
+    pub const SECRETS_CAPS: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/secrets-caps.schema.json";
+    /// OTLP attribute key schema.
+    pub const OTLP_KEYS: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/otlp-keys.schema.json";
+    /// Run result schema.
+    pub const RUN_RESULT: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/run-result.schema.json";
+}
+
+#[cfg(all(feature = "schema", feature = "std"))]
+/// Writes every JSON Schema to the provided directory.
+pub fn write_all_schemas(out_dir: &std::path::Path) -> anyhow::Result<()> {
+    use anyhow::Context;
+    use std::fs;
+
+    fs::create_dir_all(out_dir)
+        .with_context(|| format!("failed to create {}", out_dir.display()))?;
+
+    for entry in crate::schema::entries() {
+        let schema = (entry.generator)();
+        let path = out_dir.join(entry.file_name);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)
+                .with_context(|| format!("failed to create {}", parent.display()))?;
+        }
+
+        let json =
+            serde_json::to_vec_pretty(&schema).context("failed to serialize schema to JSON")?;
+        fs::write(&path, json).with_context(|| format!("failed to write {}", path.display()))?;
+    }
+
+    Ok(())
+}
+
 macro_rules! id_newtype {
     ($name:ident, $doc:literal) => {
         #[doc = $doc]
         #[derive(Clone, Debug, Eq, PartialEq, Hash)]
         #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
         #[cfg_attr(feature = "schemars", derive(JsonSchema))]
-        #[cfg_attr(feature = "serde", serde(transparent))]
+        #[cfg_attr(feature = "serde", serde(try_from = "String", into = "String"))]
         pub struct $name(pub String);
 
         impl $name {
@@ -61,17 +231,10 @@ macro_rules! id_newtype {
             pub fn as_str(&self) -> &str {
                 &self.0
             }
-        }
 
-        impl From<String> for $name {
-            fn from(value: String) -> Self {
-                Self(value)
-            }
-        }
-
-        impl From<&str> for $name {
-            fn from(value: &str) -> Self {
-                Self(value.to_owned())
+            /// Validates and constructs the identifier from the provided value.
+            pub fn new(value: impl AsRef<str>) -> GResult<Self> {
+                value.as_ref().parse()
             }
         }
 
@@ -92,6 +255,31 @@ macro_rules! id_newtype {
                 f.write_str(self.as_str())
             }
         }
+
+        impl FromStr for $name {
+            type Err = GreenticError;
+
+            fn from_str(value: &str) -> Result<Self, Self::Err> {
+                validate_identifier(value, stringify!($name))?;
+                Ok(Self(value.to_owned()))
+            }
+        }
+
+        impl TryFrom<String> for $name {
+            type Error = GreenticError;
+
+            fn try_from(value: String) -> Result<Self, Self::Error> {
+                $name::from_str(&value)
+            }
+        }
+
+        impl TryFrom<&str> for $name {
+            type Error = GreenticError;
+
+            fn try_from(value: &str) -> Result<Self, Self::Error> {
+                $name::from_str(value)
+            }
+        }
     };
 }
 
@@ -99,6 +287,323 @@ id_newtype!(EnvId, "Environment identifier for a tenant context.");
 id_newtype!(TenantId, "Tenant identifier within an environment.");
 id_newtype!(TeamId, "Team identifier belonging to a tenant.");
 id_newtype!(UserId, "User identifier within a tenant.");
+id_newtype!(PackId, "Globally unique pack identifier.");
+id_newtype!(
+    ComponentId,
+    "Identifier referencing a component binding in a pack."
+);
+id_newtype!(FlowId, "Identifier referencing a flow inside a pack.");
+id_newtype!(NodeId, "Identifier referencing a node inside a flow graph.");
+
+/// Compact tenant summary propagated to developers and tooling.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct TenantContext {
+    /// Tenant identifier owning the execution.
+    pub tenant_id: TenantId,
+    /// Optional team identifier scoped to the tenant.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub team_id: Option<TeamId>,
+    /// Optional user identifier scoped to the tenant.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub user_id: Option<UserId>,
+    /// Optional session identifier for end-to-end correlation.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub session_id: Option<String>,
+}
+
+impl TenantContext {
+    /// Creates a new tenant context scoped to the provided tenant id.
+    pub fn new(tenant_id: TenantId) -> Self {
+        Self {
+            tenant_id,
+            team_id: None,
+            user_id: None,
+            session_id: None,
+        }
+    }
+}
+
+impl From<&TenantCtx> for TenantContext {
+    fn from(ctx: &TenantCtx) -> Self {
+        Self {
+            tenant_id: ctx.tenant_id.clone(),
+            team_id: ctx.team_id.clone().or_else(|| ctx.team.clone()),
+            user_id: ctx.user_id.clone().or_else(|| ctx.user.clone()),
+            session_id: ctx.session_id.clone(),
+        }
+    }
+}
+
+/// Supported hashing algorithms for pack content digests.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+pub enum HashAlgorithm {
+    /// Blake3 hashing algorithm.
+    Blake3,
+    /// Catch all for other algorithms.
+    Other(String),
+}
+
+/// Content digest describing a pack or artifact.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(into = "HashDigestRepr", try_from = "HashDigestRepr")
+)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct HashDigest {
+    /// Hash algorithm used to produce the digest.
+    pub algo: HashAlgorithm,
+    /// Hex encoded digest bytes.
+    pub hex: String,
+}
+
+impl HashDigest {
+    /// Creates a new digest ensuring the hex payload is valid.
+    pub fn new(algo: HashAlgorithm, hex: impl Into<String>) -> GResult<Self> {
+        let hex = hex.into();
+        validate_hex(&hex)?;
+        Ok(Self { algo, hex })
+    }
+
+    /// Convenience constructor for Blake3 digests.
+    pub fn blake3(hex: impl Into<String>) -> GResult<Self> {
+        Self::new(HashAlgorithm::Blake3, hex)
+    }
+}
+
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+struct HashDigestRepr {
+    algo: HashAlgorithm,
+    hex: String,
+}
+
+impl From<HashDigest> for HashDigestRepr {
+    fn from(value: HashDigest) -> Self {
+        Self {
+            algo: value.algo,
+            hex: value.hex,
+        }
+    }
+}
+
+impl TryFrom<HashDigestRepr> for HashDigest {
+    type Error = GreenticError;
+
+    fn try_from(value: HashDigestRepr) -> Result<Self, Self::Error> {
+        HashDigest::new(value.algo, value.hex)
+    }
+}
+
+fn validate_hex(hex: &str) -> GResult<()> {
+    if hex.is_empty() {
+        return Err(GreenticError::new(
+            ErrorCode::InvalidInput,
+            "digest hex payload must not be empty",
+        ));
+    }
+    if hex.len() % 2 != 0 {
+        return Err(GreenticError::new(
+            ErrorCode::InvalidInput,
+            "digest hex payload must have an even number of digits",
+        ));
+    }
+    if !hex.chars().all(|c| c.is_ascii_hexdigit()) {
+        return Err(GreenticError::new(
+            ErrorCode::InvalidInput,
+            "digest hex payload must be hexadecimal",
+        ));
+    }
+    Ok(())
+}
+
+/// Semantic version requirement validated by [`semver`].
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(into = "String", try_from = "String"))]
+pub struct SemverReq(String);
+
+impl SemverReq {
+    /// Parses and validates a semantic version requirement string.
+    pub fn parse(value: impl AsRef<str>) -> GResult<Self> {
+        let value = value.as_ref();
+        VersionReq::parse(value).map_err(|err| {
+            GreenticError::new(
+                ErrorCode::InvalidInput,
+                format!("invalid semver requirement '{value}': {err}"),
+            )
+        })?;
+        Ok(Self(value.to_owned()))
+    }
+
+    /// Returns the underlying string slice.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    /// Converts into a [`semver::VersionReq`].
+    pub fn to_version_req(&self) -> VersionReq {
+        VersionReq::parse(&self.0)
+            .unwrap_or_else(|err| unreachable!("SemverReq::parse validated inputs: {err}"))
+    }
+}
+
+impl fmt::Display for SemverReq {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl From<SemverReq> for String {
+    fn from(value: SemverReq) -> Self {
+        value.0
+    }
+}
+
+impl TryFrom<String> for SemverReq {
+    type Error = GreenticError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        SemverReq::parse(&value)
+    }
+}
+
+impl TryFrom<&str> for SemverReq {
+    type Error = GreenticError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        SemverReq::parse(value)
+    }
+}
+
+impl FromStr for SemverReq {
+    type Err = GreenticError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        SemverReq::parse(s)
+    }
+}
+
+/// JSONPath expression pointing at sensitive fields that should be redacted.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(into = "String", try_from = "String"))]
+pub struct RedactionPath(String);
+
+impl RedactionPath {
+    /// Validates and stores a JSONPath expression.
+    pub fn parse(value: impl AsRef<str>) -> GResult<Self> {
+        let value = value.as_ref();
+        validate_jsonpath(value)?;
+        Ok(Self(value.to_owned()))
+    }
+
+    /// Returns the JSONPath string.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for RedactionPath {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl From<RedactionPath> for String {
+    fn from(value: RedactionPath) -> Self {
+        value.0
+    }
+}
+
+impl TryFrom<String> for RedactionPath {
+    type Error = GreenticError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        RedactionPath::parse(&value)
+    }
+}
+
+impl TryFrom<&str> for RedactionPath {
+    type Error = GreenticError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        RedactionPath::parse(value)
+    }
+}
+
+fn validate_jsonpath(path: &str) -> GResult<()> {
+    if path.is_empty() {
+        return Err(GreenticError::new(
+            ErrorCode::InvalidInput,
+            "redaction path cannot be empty",
+        ));
+    }
+    if !path.starts_with('$') {
+        return Err(GreenticError::new(
+            ErrorCode::InvalidInput,
+            "redaction path must start with '$'",
+        ));
+    }
+    if path.chars().any(|c| c.is_control()) {
+        return Err(GreenticError::new(
+            ErrorCode::InvalidInput,
+            "redaction path cannot contain control characters",
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(feature = "schemars")]
+impl JsonSchema for SemverReq {
+    fn schema_name() -> Cow<'static, str> {
+        Cow::Borrowed("SemverReq")
+    }
+
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        let mut schema = <String>::json_schema(generator);
+        if schema.get("description").is_none() {
+            schema.insert(
+                "description".into(),
+                "Validated semantic version requirement string".into(),
+            );
+        }
+        schema
+    }
+}
+
+#[cfg(feature = "schemars")]
+impl JsonSchema for RedactionPath {
+    fn schema_name() -> Cow<'static, str> {
+        Cow::Borrowed("RedactionPath")
+    }
+
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        let mut schema = <String>::json_schema(generator);
+        if schema.get("description").is_none() {
+            schema.insert(
+                "description".into(),
+                "JSONPath expression used for runtime redaction".into(),
+            );
+        }
+        schema
+    }
+}
 
 /// Deadline metadata for an invocation, stored as Unix epoch milliseconds.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -477,12 +982,18 @@ fn fnv1a_128_hex(bytes: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use core::convert::TryFrom;
     use time::OffsetDateTime;
 
     fn sample_ctx() -> TenantCtx {
-        let mut ctx = TenantCtx::new(EnvId::from("prod"), TenantId::from("tenant-123"))
-            .with_team(Some(TeamId::from("team-456")))
-            .with_user(Some(UserId::from("user-789")))
+        let env = EnvId::try_from("prod").unwrap_or_else(|err| panic!("{err}"));
+        let tenant = TenantId::try_from("tenant-123").unwrap_or_else(|err| panic!("{err}"));
+        let team = TeamId::try_from("team-456").unwrap_or_else(|err| panic!("{err}"));
+        let user = UserId::try_from("user-789").unwrap_or_else(|err| panic!("{err}"));
+
+        let mut ctx = TenantCtx::new(env, tenant)
+            .with_team(Some(team))
+            .with_user(Some(user))
             .with_attempt(2)
             .with_deadline(Some(InvocationDeadline::from_unix_millis(
                 1_700_000_000_000,

@@ -3,16 +3,19 @@
 Shared primitives for Greentic’s next-generation runner, deployer, connectors, packs, and state/session backends.  
 Every repository in the `greentic-ng` stack depends on these types to exchange tenant identity, session cursors, state pointers, policy decisions, pack references, and canonical error/outcome envelopes.
 
-## Crate features
-- `serde` *(default)* – enables serde derives and helpers (pulls `serde_with` for stable semver + base64 encodings).
-- `time` *(default)* – enables `time::OffsetDateTime` helpers for deadlines and telemetry spans.
-- `uuid` – adds UUID-based constructors for session keys.
-- `schemars` – emits JSON Schemas for all public types (used by docs and CI conformance tests).
-- `std` *(default)* – allows attaching source errors to `NodeError`/`GreenticError`.
+## Feature flags & MSRV
+
+- **Default (`std`, `serde`, `time`, `otel-keys`)** – the recommended configuration for runners, CLIs, and tooling.
+- **`schema`** – pulls in `schemars`, `anyhow`, and `serde_json` so you can call `write_all_schemas` or the `export-schemas` binary. (Derives continue to sit behind the lighter `schemars` feature for backwards compatibility.)
+- **`otel-keys`** *(default)* – exposes `telemetry::OtlpKeys` and the schema for the OTLP attribute constants without requiring `telemetry-autoinit`.
+- **`telemetry-autoinit`** – bundles the OTLP stack and task-local span helpers.
+- **`uuid`** – adds UUID-based constructors for `SessionKey`.
+
+MSRV: **Rust 1.85** (required by the 2024 edition). The MSRV is enforced in CI; when bumping it, update both `Cargo.toml` and the workflow matrix.
 
 Disable defaults for fully `no_std` builds:
 ```toml
-greentic-types = { version = "0.1.4", default-features = false, features = ["serde"] }
+greentic-types = { version = "0.3.0", default-features = false, features = ["serde"] }
 ```
 
 ## Quickstart
@@ -21,9 +24,9 @@ use greentic_types::{
     AllowList, EnvId, ErrorCode, Outcome, SessionCursor, SessionKey, TenantCtx, TenantId,
 };
 
-let ctx = TenantCtx::new(EnvId::from("prod"), TenantId::from("tenant-42"))
-    .with_team(Some("team-ops".into()))
-    .with_user(Some("agent-7".into()));
+let ctx = TenantCtx::new("prod".parse().unwrap(), "tenant-42".parse().unwrap())
+    .with_team(Some("team-ops".parse().unwrap()))
+    .with_user(Some("agent-7".parse().unwrap()));
 
 let cursor = SessionCursor::new("node.entry")
     .with_wait_reason("awaiting human input")
@@ -75,14 +78,22 @@ let outcome = match validate("payload") {
 };
 ```
 
-### Schema generation
+### Schema generation & publishing
 ```rust
 #[cfg(feature = "schemars")]
 {
     let schema = schemars::schema_for!(greentic_types::TenantCtx);
     println!("{}", serde_json::to_string_pretty(&schema).unwrap());
 }
+
+#[cfg(feature = "schema")]
+{
+    use std::path::Path;
+    greentic_types::write_all_schemas(Path::new("dist/schemas/v1"))?;
+}
 ```
+- `cargo run --bin export-schemas --all-features` runs the helper binary and writes JSON Schemas into `dist/schemas/v1/`.
+- Published schemas (and canonical URLs) live in [SCHEMAS.md](SCHEMAS.md); CI pushes them to GitHub Pages automatically.
 
 ## Telemetry (auto-init)
 - Enable with `features = ["telemetry-autoinit"]` to bundle the OTLP stack and entry-point macro.
@@ -97,11 +108,11 @@ use greentic_types::telemetry::set_current_tenant_ctx;
 
 #[greentic_types::telemetry::main(service_name = "greentic-runner")]
 async fn main() -> anyhow::Result<()> {
-    let ctx = TenantCtx::new(EnvId::from("prod"), TenantId::from("acme"))
-        .with_session("s1")
-        .with_flow("hello")
-        .with_node("qa-1")
-        .with_provider("runner");
+let ctx = TenantCtx::new("prod".parse().unwrap(), "acme".parse().unwrap())
+    .with_session("s1")
+    .with_flow("hello")
+    .with_node("qa-1")
+    .with_provider("runner");
     set_current_tenant_ctx(&ctx);
     tracing::info!("tenant-aware spans now have gt.* attrs");
     Ok(())
@@ -121,6 +132,11 @@ async fn main() -> anyhow::Result<()> {
 - `greentic-runner`, `greentic-session-store`, `greentic-state-store`, `greentic-deployer`, `greentic-connectors`, and `greentic-packs` depend on this crate. Always add new shared types here first to avoid duplication.
 - ABI/WIT contracts live in **greentic-interfaces**; never re-define those types here.
 
+### Adopt in other repos
+- Replace bespoke definitions of `RunResult`, `RunStatus`, `NodeStatus`, `NodeSummary`, `NodeFailure`, `Capabilities`, `Limits`, `TelemetrySpec`, and the ID newtypes (`PackId`, `FlowId`, etc.) with the versions exported by `greentic-types`.
+- Hook your manifests, CLIs, and IDE tooling to the canonical schema URLs from [SCHEMAS.md](SCHEMAS.md) for validation.
+- Add a dependency on this crate (with the appropriate features) before introducing new shared structs so CI can enforce the no-duplicate rule.
+
 ## Development workflow
 ```bash
 cargo fmt --all
@@ -135,6 +151,7 @@ CI (see `.github/workflows/publish.yml`) enforces the same gates on push/PR. Leg
 - `GResult<T>` aliases `Result<T, GreenticError>` for consistent error propagation.
 - Prefer zero-copy APIs; the crate is `#![forbid(unsafe_code)]`.
 - Use feature flags to keep downstream binaries lightweight (e.g., disable `uuid` in constrained connectors).
+- The crate version is exposed at runtime via `greentic_types::VERSION` for telemetry banners or capability negotiation.
 
 ## Releases & Publishing
 - Versions come directly from each crate’s `Cargo.toml`.

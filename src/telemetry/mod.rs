@@ -1,7 +1,11 @@
 //! Telemetry helpers exposed by `greentic-types`.
 
+#[cfg(feature = "otel-keys")]
+mod keys;
 mod span_context;
 
+#[cfg(feature = "otel-keys")]
+pub use keys::OtlpKeys;
 pub use span_context::SpanContext;
 
 #[cfg(feature = "telemetry-autoinit")]

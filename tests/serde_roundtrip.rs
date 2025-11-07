@@ -1,16 +1,23 @@
 #![cfg(feature = "serde")]
 
 use greentic_types::{
-    AllowList, ErrorCode, GreenticError, Impersonation, InvocationDeadline, NetworkPolicy, Outcome,
-    PackRef, PolicyDecision, SessionCursor, SessionKey, Signature, SignatureAlgorithm, SpanContext,
-    StateKey, StatePath, TenantCtx, TenantIdentity,
+    AllowList, Capabilities, ComponentId, ErrorCode, FsCaps, GreenticError, HashDigest, HttpCaps,
+    Impersonation, InvocationDeadline, KvCaps, Limits, NetCaps, NetworkPolicy, NodeFailure, NodeId,
+    NodeStatus, NodeSummary, Outcome, PackId, PackRef, PolicyDecision, RedactionPath, RunStatus,
+    SecretsCaps, SemverReq, SessionCursor, SessionKey, Signature, SignatureAlgorithm, SpanContext,
+    StateKey, StatePath, TelemetrySpec, TenantContext, TenantCtx, TenantIdentity, ToolsCaps,
+    TranscriptOffset,
 };
+#[cfg(feature = "time")]
+use greentic_types::{FlowId, RunResult};
 use semver::Version;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+use std::collections::BTreeMap;
+use std::str::FromStr;
 
 #[cfg(feature = "time")]
-use time::OffsetDateTime;
+use time::{Duration, OffsetDateTime};
 
 fn assert_roundtrip<T>(value: &T)
 where
@@ -23,15 +30,15 @@ where
 
 #[test]
 fn tenant_ctx_roundtrip() {
-    let mut ctx = TenantCtx::new("prod".into(), "tenant-1".into())
-        .with_team(Some("team-9".into()))
-        .with_user(Some("user-42".into()));
+    let mut ctx = TenantCtx::new("prod".parse().unwrap(), "tenant-1".parse().unwrap())
+        .with_team(Some("team-9".parse().unwrap()))
+        .with_user(Some("user-42".parse().unwrap()));
     ctx.trace_id = Some("trace-1".into());
     ctx.correlation_id = Some("corr-7".into());
     ctx.idempotency_key = Some("idem-3".into());
     ctx.deadline = Some(InvocationDeadline::from_unix_millis(42));
     ctx.impersonation = Some(Impersonation {
-        actor_id: "support-ops".into(),
+        actor_id: "support-ops".parse().unwrap(),
         reason: Some("break-glass".into()),
     });
 
@@ -126,7 +133,7 @@ fn pack_signature_roundtrip() {
 
 #[test]
 fn span_context_roundtrip() {
-    let mut span = SpanContext::new("tenant-2".into(), "flow-alpha", "runtime-core");
+    let mut span = SpanContext::new("tenant-2".parse().unwrap(), "flow-alpha", "runtime-core");
     span = span.with_session("sess-9".into()).with_node("node-7");
     #[cfg(feature = "time")]
     {
@@ -144,4 +151,139 @@ fn greentic_error_roundtrip() {
     let deser: GreenticError = serde_json::from_str(&json).expect("deserialize");
     assert_eq!(deser.code, err.code);
     assert_eq!(deser.message, err.message);
+}
+
+#[test]
+fn tenant_context_summary_roundtrip() {
+    let ctx = TenantCtx::new("prod".parse().unwrap(), "tenant-99".parse().unwrap())
+        .with_team(Some("team-1".parse().unwrap()))
+        .with_user(Some("user-2".parse().unwrap()))
+        .with_session("session-3");
+    let summary: TenantContext = ctx.tenant_context();
+    assert_eq!(summary.tenant_id.as_str(), "tenant-99");
+    assert_eq!(
+        summary.team_id.as_ref().map(|id| id.as_str()),
+        Some("team-1")
+    );
+    assert_roundtrip(&summary);
+}
+
+#[test]
+fn semver_req_validates() {
+    let req = SemverReq::parse("^1.2").expect("valid semver req");
+    assert_eq!(req.to_string(), "^1.2");
+    assert!(SemverReq::parse("not-a-semver").is_err());
+    let json = serde_json::to_string(&req).expect("serialize");
+    assert_eq!(json, "\"^1.2\"");
+    assert!(serde_json::from_str::<SemverReq>("\"bad!!\"").is_err());
+}
+
+#[test]
+fn redaction_path_validates() {
+    let path = RedactionPath::parse("$.sensitive.field").expect("valid path");
+    assert_eq!(path.as_str(), "$.sensitive.field");
+    assert!(RedactionPath::parse("").is_err());
+    assert!(RedactionPath::parse("tenant.id").is_err());
+    assert_roundtrip(&path);
+}
+
+#[test]
+fn hash_digest_roundtrip() {
+    let digest = HashDigest::blake3("deadbeef").expect("valid hex");
+    assert_roundtrip(&digest);
+    assert!(HashDigest::blake3("not-hex").is_err());
+}
+
+#[test]
+fn pack_id_deserialize_rejects_invalid() {
+    let err = serde_json::from_str::<PackId>("\"bad id\"").expect_err("should fail");
+    assert!(err.is_data());
+}
+
+#[test]
+fn semver_req_deserialize_rejects_invalid() {
+    let err = serde_json::from_str::<SemverReq>("\"1..0\"").expect_err("should fail");
+    assert!(err.is_data());
+}
+
+#[test]
+fn capabilities_roundtrip() {
+    let mut caps = Capabilities::new();
+    let mut http = HttpCaps::new();
+    http.allow_list = Some(AllowList {
+        domains: vec!["api.greentic.ai".into()],
+        ports: vec![443],
+        protocols: vec![greentic_types::Protocol::Https],
+    });
+    http.max_body_bytes = Some(1_048_576);
+    caps.http = Some(http);
+
+    let mut secrets = SecretsCaps::new();
+    secrets.required.push("PRIMARY_TOKEN".into());
+    caps.secrets = Some(secrets);
+
+    let mut kv = KvCaps::new();
+    kv.namespaces.push("cache".into());
+    caps.kv = Some(kv);
+
+    let mut fs = FsCaps::new();
+    fs.paths.push("/data".into());
+    caps.fs = Some(fs);
+
+    let mut net = NetCaps::new();
+    net.policy = Some(NetworkPolicy::strict(AllowList::default()));
+    caps.net = Some(net);
+
+    let mut tools = ToolsCaps::new();
+    tools.allowed.push("summarize".into());
+    caps.tools = Some(tools);
+
+    let mut limits = Limits::new(256, 15_000);
+    limits.files = Some(32);
+    limits.fuel = Some(10_000);
+
+    let mut telemetry = TelemetrySpec::new("packc");
+    telemetry.attributes.insert("env".into(), "dev".into());
+    telemetry.emit_node_spans = true;
+
+    assert_roundtrip(&caps);
+    assert_roundtrip(&limits);
+    assert_roundtrip(&telemetry);
+    assert!(!caps.is_empty());
+}
+
+#[cfg(feature = "time")]
+#[test]
+fn run_result_roundtrip() {
+    let start = OffsetDateTime::from_unix_timestamp(1_700_000_000).expect("timestamp");
+    let finish = start + Duration::seconds(2);
+    let summary = NodeSummary {
+        node_id: NodeId::from_str("node.entry").unwrap(),
+        component: ComponentId::from_str("qa.process").unwrap(),
+        status: NodeStatus::Ok,
+        duration_ms: 1200,
+    };
+    let failure = NodeFailure {
+        code: "E2E_TEST".into(),
+        message: "simulated failure".into(),
+        details: BTreeMap::new(),
+        transcript_offsets: vec![TranscriptOffset { start: 0, end: 42 }],
+        log_paths: vec!["/var/tmp/run.log".into()],
+    };
+
+    let result = RunResult {
+        session_id: SessionKey::from("sess-42"),
+        pack_id: PackId::from_str("greentic.weather.demo").unwrap(),
+        pack_version: Version::parse("1.2.3").expect("semver"),
+        flow_id: FlowId::from_str("flow-main").unwrap(),
+        started_at_utc: start,
+        finished_at_utc: finish,
+        status: RunStatus::PartialFailure,
+        node_summaries: vec![summary],
+        failures: vec![failure],
+        artifacts_dir: Some("/tmp/run-artifacts".into()),
+    };
+
+    assert_roundtrip(&result);
+    assert!(result.duration_ms() >= 2000);
 }
