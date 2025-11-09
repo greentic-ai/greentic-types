@@ -52,7 +52,7 @@ serde_json = { version = "1", optional = true }
 thiserror = "2"
 time = { version = "0.3", features = ["formatting", "macros", "parsing", "serde"], optional = true }
 uuid = { version = "1", features = ["v4", "serde"], optional = true }
-greentic-telemetry = { version = "0.2", optional = true }
+greentic-telemetry = { version = "0.3", optional = true }
 greentic-types-macros = { version = "0.3", path = "greentic-types-macros", optional = true }
 opentelemetry-otlp = { version = "0.31", optional = true }
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"], optional = true }
@@ -62,7 +62,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["r
 [dev-dependencies]
 schemars = { version = "1", features = ["derive"] }
 serde_json = "1"
-serde_yaml_bw = "2.4"
+serde_yaml_bw = "2"
 proptest = "1"
 
 [[bin]]

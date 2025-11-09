@@ -17,7 +17,8 @@ declare -a PATTERNS=(
 STATUS=0
 
 for entry in "${PATTERNS[@]}"; do
-  IFS='::' read -r pattern allow <<<"$entry"
+  pattern=${entry%%::*}
+  allow=${entry#*::}
   IFS=',' read -r -a allowed_files <<<"$allow"
 
   matches=$(rg --files-with-matches -g'*.rs' -F "$pattern" --glob '!target/**' --glob '!dist/**' --glob '!greentic-types-macros/**' || true)
