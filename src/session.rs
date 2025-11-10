@@ -8,6 +8,8 @@ use schemars::JsonSchema;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+use crate::{FlowId, TenantCtx};
+
 /// Unique key referencing a persisted session.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -100,4 +102,19 @@ impl SessionCursor {
         self.outbox_marker = Some(marker.into());
         self
     }
+}
+
+/// Persisted session payload describing how to resume a flow.
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct SessionData {
+    /// Tenant context associated with the session.
+    pub tenant_ctx: TenantCtx,
+    /// Flow identifier being executed.
+    pub flow_id: FlowId,
+    /// Cursor pinpointing where execution paused.
+    pub cursor: SessionCursor,
+    /// Serialized execution context/state snapshot.
+    pub context_json: String,
 }

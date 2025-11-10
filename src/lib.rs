@@ -82,7 +82,7 @@ pub use policy::{AllowList, NetworkPolicy, PolicyDecision, Protocol};
 #[cfg(feature = "time")]
 pub use run::RunResult;
 pub use run::{NodeFailure, NodeStatus, NodeSummary, RunStatus, TranscriptOffset};
-pub use session::{SessionCursor, SessionKey};
+pub use session::{SessionCursor, SessionData, SessionKey};
 pub use state::{StateKey, StatePath};
 #[cfg(feature = "otel-keys")]
 pub use telemetry::OtlpKeys;
