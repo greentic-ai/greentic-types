@@ -5,13 +5,6 @@
 
 extern crate alloc;
 
-use alloc::{string::String, vec::Vec};
-
-#[cfg(feature = "schemars")]
-use schemars::JsonSchema;
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
-
 /// Shared binding hints emitted by pack generators and consumed by the runner host.
 pub mod hints {
     use alloc::{string::String, vec::Vec};
@@ -24,6 +17,7 @@ pub mod hints {
     #[derive(Debug, Clone, Default, PartialEq, Eq)]
     #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
     #[cfg_attr(feature = "schemars", derive(JsonSchema))]
+    /// Hints that describe the binding requirements a pack emits for the runner.
     pub struct BindingsHints {
         /// Explicit network endpoints that the pack plans to call. Default is deny-all.
         #[cfg_attr(feature = "serde", serde(default))]
@@ -44,6 +38,7 @@ pub mod hints {
     #[derive(Debug, Clone, Default, PartialEq, Eq)]
     #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
     #[cfg_attr(feature = "schemars", derive(JsonSchema))]
+    /// Network-specific allowlists declared by a pack.
     pub struct NetworkHints {
         /// Allowlisted host:port entries required by the flows.
         #[cfg_attr(feature = "serde", serde(default))]
@@ -53,6 +48,7 @@ pub mod hints {
     #[derive(Debug, Clone, Default, PartialEq, Eq)]
     #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
     #[cfg_attr(feature = "schemars", derive(JsonSchema))]
+    /// Secrets referenced by the pack that the runner must provide.
     pub struct SecretsHints {
         /// Secrets that flows declare as required. The host must supply these keys.
         #[cfg_attr(feature = "serde", serde(default))]
@@ -62,6 +58,7 @@ pub mod hints {
     #[derive(Debug, Clone, Default, PartialEq, Eq)]
     #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
     #[cfg_attr(feature = "schemars", derive(JsonSchema))]
+    /// Environment variables that need to be forwarded to the pack.
     pub struct EnvHints {
         /// Environment variables the pack expects the host to forward.
         #[cfg_attr(feature = "serde", serde(default))]
@@ -71,6 +68,7 @@ pub mod hints {
     #[derive(Debug, Clone, Default, PartialEq, Eq)]
     #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
     #[cfg_attr(feature = "schemars", derive(JsonSchema))]
+    /// Metadata for MCP servers that will be bound into the runtime toolkit.
     pub struct McpHints {
         /// Stubbed MCP tool servers referenced by the flows.
         #[cfg_attr(feature = "serde", serde(default))]
@@ -80,6 +78,7 @@ pub mod hints {
     #[derive(Debug, Clone, PartialEq, Eq)]
     #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
     #[cfg_attr(feature = "schemars", derive(JsonSchema))]
+    /// Descriptor for a single MCP server the host must expose.
     pub struct McpServer {
         /// Logical name referenced by flows.
         pub name: String,
@@ -92,4 +91,3 @@ pub mod hints {
         pub caps: Vec<String>,
     }
 }
-
