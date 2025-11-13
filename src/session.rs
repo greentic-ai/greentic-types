@@ -60,6 +60,29 @@ impl From<uuid::Uuid> for SessionKey {
     }
 }
 
+const DEFAULT_CANONICAL_ANCHOR: &str = "conversation";
+const DEFAULT_CANONICAL_USER: &str = "user";
+
+/// Build the canonical `{tenant}:{provider}:{anchor}:{user}` session key.
+///
+/// All canonical adapters are expected to follow this format so pause/resume semantics remain
+/// deterministic across ingress providers. The anchor defaults to `conversation` and the user
+/// defaults to `user` when those fields are not supplied.
+pub fn canonical_session_key(
+    tenant: impl AsRef<str>,
+    provider: impl AsRef<str>,
+    anchor: Option<&str>,
+    user: Option<&str>,
+) -> SessionKey {
+    SessionKey::new(format!(
+        "{}:{}:{}:{}",
+        tenant.as_ref(),
+        provider.as_ref(),
+        anchor.unwrap_or(DEFAULT_CANONICAL_ANCHOR),
+        user.unwrap_or(DEFAULT_CANONICAL_USER)
+    ))
+}
+
 /// Cursor pointing at a session's position in a flow graph.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -117,4 +140,21 @@ pub struct SessionData {
     pub cursor: SessionCursor,
     /// Serialized execution context/state snapshot.
     pub context_json: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn canonical_session_key_includes_components() {
+        let key = canonical_session_key("tenant", "webhook", Some("room-1"), Some("user-5"));
+        assert_eq!(key.as_str(), "tenant:webhook:room-1:user-5");
+    }
+
+    #[test]
+    fn canonical_session_key_defaults_anchor_and_user() {
+        let key = canonical_session_key("tenant", "webhook", None, None);
+        assert_eq!(key.as_str(), "tenant:webhook:conversation:user");
+    }
 }

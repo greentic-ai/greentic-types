@@ -56,6 +56,7 @@ pub const SCHEMA_BASE_URL: &str = "https://greentic-ai.github.io/greentic-types/
 
 pub mod capabilities;
 pub mod pack_spec;
+pub mod bindings;
 
 pub mod context;
 pub mod error;
@@ -79,6 +80,7 @@ pub use outcome::Outcome;
 pub use pack::{PackRef, Signature, SignatureAlgorithm};
 pub use pack_spec::{PackSpec, ToolSpec};
 pub use policy::{AllowList, NetworkPolicy, PolicyDecision, Protocol};
+pub use bindings::hints::{BindingsHints, EnvHints, McpHints, McpServer, NetworkHints, SecretsHints};
 #[cfg(feature = "time")]
 pub use run::RunResult;
 pub use run::{NodeFailure, NodeStatus, NodeSummary, RunStatus, TranscriptOffset};
