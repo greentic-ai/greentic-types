@@ -14,8 +14,8 @@ After all Codex prompts land, Greentic becomes a cohesive ecosystem of interoper
 | Concept | Purpose |
 |----------|----------|
 | **Pack** | Deployable unit containing flows, templates, schemas, and manifests — signed and versioned. |
-| **Flow** | Declarative YAML describing logic between nodes (QA, tool, template, message…). |
-| **Node** | Execution unit within a flow. Each node has `kind` (e.g., `tool.invoke`, `qa`, `template.render`). |
+| **Flow** | Declarative `.ygtc` file describing a small DAG (`kind`, `component`, `config`, `routing`) for either `messaging` or `events`. |
+| **Node** | Execution unit within a flow; schema only tracks opaque `kind` strings plus config/routing blobs (semantics live inside components). |
 | **Adapter / Connector** | Bridges between Greentic and the outside world (e.g., messaging.telegram, webhook.github). |
 | **Tool** | Executable logic compiled to Wasm (MCP component or HTTP). |
 | **Tenant / Team / User** | Multi-tenant separation model. Every operation is scoped by `TenantCtx`. |
@@ -108,11 +108,11 @@ greentic-runner load --pack oci://ghcr.io/greentic-ai/weather-demo:0.1.0
 Telegram webhook → runner → derive session key → load session → resume flow.
 
 ### Step 4 — Flow Engine Runs
-- Executes QA, tool, template, message nodes.
+- Executes nodes in insertion order, using each node’s component/profile/config.
 - Updates telemetry and applies policy.
 
-### Step 5 — Tools Execute
-- Runner resolves `toolmap.json` entry, loads MCP component, executes in Wasm sandbox.
+### Step 5 — Components Execute
+- Runner resolves the referenced component manifest, loads the WASM module, and executes it with generated bindings.
 
 ### Step 6 — Response & State Persistence
 - Template renders forecast.

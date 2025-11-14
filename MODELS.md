@@ -1,0 +1,24 @@
+# Greentic Model Guidelines
+
+Greentic packs, flows, and components deliberately keep semantics opaque so the same types apply to
+every domain. The models exported by `greentic-types` follow three simple rules:
+
+1. **Identifiers are untyped strings.**  
+   `PackId`, `FlowId`, `NodeId`, `ComponentId`, node kinds, and profile names only model identity. A
+   runtime may interpret `agent.router` or `component-a`, but the type system treats them as strings
+   without baked-in categories.
+
+2. **Capabilities describe interaction patterns, not intent.**  
+   `ComponentCapabilities` only list WASI surfaces (`filesystem`, `env`, `random`, `clocks`) and
+   host services (`secrets`, `state`, `messaging`, `events`, `http`, `telemetry`). Nothing in the
+   manifest says “QA agent” or “RAG caller”; the runtime just wires the declared interfaces and
+   policies.
+
+3. **Packs and flows never encode bindings or connectors.**  
+   `Flow` holds a DAG of nodes with opaque config/routing blobs. `PackManifest` bundles flows and
+   component references plus optional profile defaults or connector hints, but no WASI paths,
+   secrets, or tenant-specific wiring. Bindings are generated later by hosts like `greentic-pack`
+   and `greentic-runner`.
+
+This separation lets humans and small LLMs edit `.ygtc` and `.gtpack` files confidently while hosts
+handle sandboxing, policies, and domain-specific behaviour elsewhere.

@@ -9,9 +9,9 @@ use crate::run::RunResult;
 #[cfg(feature = "otel-keys")]
 use crate::telemetry::OtlpKeys;
 use crate::{
-    Capabilities, ComponentId, FlowId, HashDigest, Limits, NodeFailure, NodeId, NodeStatus,
-    NodeSummary, PackId, RedactionPath, RunStatus, SecretsCaps, SemverReq, TelemetrySpec,
-    TenantContext, ToolsCaps, TranscriptOffset, ids,
+    Capabilities, ComponentId, ComponentManifest, Flow, FlowId, HashDigest, Limits, Node,
+    NodeFailure, NodeId, NodeStatus, NodeSummary, PackId, PackManifest, RedactionPath, RunStatus,
+    SecretsCaps, SemverReq, TelemetrySpec, TenantContext, ToolsCaps, TranscriptOffset, ids,
 };
 use schemars::{JsonSchema, Schema, schema_for};
 
@@ -50,6 +50,14 @@ define_schema_fn!(pack_id, PackId, ids::PACK_ID);
 define_schema_fn!(component_id, ComponentId, ids::COMPONENT_ID);
 define_schema_fn!(flow_id, FlowId, ids::FLOW_ID);
 define_schema_fn!(node_id, NodeId, ids::NODE_ID);
+define_schema_fn!(flow, Flow, ids::FLOW);
+define_schema_fn!(node, Node, ids::NODE);
+define_schema_fn!(
+    component_manifest,
+    ComponentManifest,
+    ids::COMPONENT_MANIFEST
+);
+define_schema_fn!(pack_manifest, PackManifest, ids::PACK_MANIFEST);
 define_schema_fn!(tenant_context, TenantContext, ids::TENANT_CONTEXT);
 define_schema_fn!(hash_digest, HashDigest, ids::HASH_DIGEST);
 define_schema_fn!(semver_req, SemverReq, ids::SEMVER_REQ);
@@ -97,6 +105,10 @@ schema_entries_vec! {
     { semver_req, "semver-req", ids::SEMVER_REQ },
     { redaction_path, "redaction-path", ids::REDACTION_PATH },
     { capabilities, "capabilities", ids::CAPABILITIES },
+    { flow, "flow", ids::FLOW },
+    { node, "node", ids::NODE },
+    { component_manifest, "component-manifest", ids::COMPONENT_MANIFEST },
+    { pack_manifest, "pack-manifest", ids::PACK_MANIFEST },
     { limits, "limits", ids::LIMITS },
     { telemetry_spec, "telemetry-spec", ids::TELEMETRY_SPEC },
     { node_summary, "node-summary", ids::NODE_SUMMARY },

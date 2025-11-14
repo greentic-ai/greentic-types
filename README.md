@@ -119,6 +119,25 @@ let ctx = TenantCtx::new("prod".parse().unwrap(), "acme".parse().unwrap())
 }
 ```
 
+## Flow, component, and pack models
+- [`Flow`, `Node`, `FlowKind`](src/flow.rs) describe `.ygtc` graphs using insertion-ordered maps so the first node stays the implicit ingress.
+- [`ComponentManifest`](src/component.rs) captures capabilities, configurators, and exposes helpers like `supports_kind` and `select_profile`.
+- [`PackManifest`](src/pack_manifest.rs) bundles flows, component requirements, and opaque profile/source/connector metadata for `.gtpack`.
+
+Read [MODELS.md](MODELS.md) for the guiding principles: IDs are opaque strings, capabilities only describe host/WASI interaction, and bindings stay outside of these documents.
+
+```rust
+use greentic_types::{ComponentManifest, FlowValidationError, Flow, FlowKind};
+
+fn ensure(flow: &Flow, manifests: &[ComponentManifest]) -> Result<(), FlowValidationError> {
+    flow.validate_components(|component_id| {
+        manifests.iter().find(|m| &m.id == component_id)
+    })
+}
+```
+
+`Flow` also exposes `ingress()` to fetch the implicit entrypoint, while `ComponentManifest::select_profile` handles profile fallback logic without re-implementing it elsewhere.
+
 ## Harmonised model
 - **TenantCtx & TenantIdentity** – shared across runner, connectors, and state/session stores; keeps legacy (`tenant`, `team`, `user`) and next-gen (`tenant_id`, `team_id`, `user_id`, `impersonation`) fields aligned.
 - **SessionKey/SessionCursor** – referenced by session routers and state stores.
@@ -133,7 +152,7 @@ let ctx = TenantCtx::new("prod".parse().unwrap(), "acme".parse().unwrap())
 - ABI/WIT contracts live in **greentic-interfaces**; never re-define those types here.
 
 ### Adopt in other repos
-- Replace bespoke definitions of `RunResult`, `RunStatus`, `NodeStatus`, `NodeSummary`, `NodeFailure`, `Capabilities`, `Limits`, `TelemetrySpec`, and the ID newtypes (`PackId`, `FlowId`, etc.) with the versions exported by `greentic-types`.
+- Replace bespoke definitions of `RunResult`, `RunStatus`, `NodeStatus`, `NodeSummary`, `NodeFailure`, `Capabilities`, `Limits`, `TelemetrySpec`, the ID newtypes (`PackId`, `FlowId`, etc.), and now the pack/flow/component schemas with the versions exported by `greentic-types`.
 - Hook your manifests, CLIs, and IDE tooling to the canonical schema URLs from [SCHEMAS.md](SCHEMAS.md) for validation.
 - Add a dependency on this crate (with the appropriate features) before introducing new shared structs so CI can enforce the no-duplicate rule.
 
@@ -184,8 +203,8 @@ CI (see `.github/workflows/publish.yml`) enforces the same gates on push/PR. Leg
 - After tagging (or even when no tags are created), the publish workflow attempts to publish all changed crates via `katyo/publish-crates@v2`.
 - Publishing is idempotent; attempting to release the same version again succeeds without errors.
 
-## Pack specifications
-Legacy pack manifests remain available via `greentic_types::pack_spec::{PackSpec, ToolSpec}` for backwards compatibility during the MCP migration. New packs should still embed their contracts in `greentic-interfaces`.
+## Legacy `pack_spec`
+Legacy pack manifests remain available via `greentic_types::pack_spec::{PackSpec, ToolSpec}` while older MCP-style packs are migrated. New packs should rely on `PackManifest` + `.ygtc` flows instead; once all callers move over we will fully remove `pack_spec`.
 
 ## License
 MIT License. See [LICENSE](LICENSE).

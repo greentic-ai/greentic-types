@@ -1,214 +1,178 @@
-# 🧩 Greentic Pack & Flow Model — Core Principles (2025-10)
+# 🧩 Greentic Pack, Flow & Component Standard (2025-10 Draft)
 
-## 1. Overall Concept
-Greentic now uses **Packs** — self-contained, signed Wasm (or `.wpk`) artifacts that embed:
-- Flows (`.ygtc` or compiled IR),
-- Templates, tools (embedded Wasm or referenced by digest),
-- A manifest (JSON/CBOR) describing flows, assets, imports, and capabilities,
-- Optional embeddings (for A2A search),
-- A digital signature (cosign/ed25519).
+This document summarises the generic data model implemented in `greentic-types` and referenced by every other Greentic repository. It mirrors the “Greentic Pack, Flow & Component Standards (Draft v1)” spec and the new Rust types:
 
-Each Pack exports a **standard WIT surface**:
-```
-list_flows() -> [FlowInfo]
-get_flow_schema(flow_id)
-run_flow(flow_id, input)
-a2a_search(embedding, k)
-```
-and imports minimal host capabilities:
-```
-secrets.get, telemetry.emit, tool.invoke, http.fetch (optional)
-```
+- `FlowKind`, `Flow`, `Node` (flows/.ygtc)
+- `ComponentManifest` + capability structs
+- `PackManifest`, `PackFlowRef`, `PackComponentRef`
 
-The host verifies the signature, enforces quotas and secret policies, and provides adapters for **flow types** such as messaging, webhook, timer, websocket, and pubsub.
+Use this as the authoritative overview when writing docs, CLIs, or tooling.
 
 ---
 
-## 2. Flow-Type Architecture
-- Flows no longer use explicit “channels”.  
-- Each flow declares a **`type:`** defining its ingress/egress:
-  - `messaging` → Telegram, Slack, Teams, etc.
-  - `webhook` → HTTP ingress/response.
-  - `timer` → cron/scheduler.
-  - `websocket` → bidirectional connections.
-  - `pubsub` → event topics.
-- The **host** chooses the concrete adapter per tenant; the flow itself stays portable.
+## 1. Flows (`.ygtc`)
 
----
+Flows are tiny YAML DAGs. The schema is intentionally minimal so humans and small LLMs can author them safely.
 
-## 3. Flow Structure (`.ygtc`)
-A flow is a small YAML graph with simple nodes:  
-`qa`, `tool`, `template`, `emit`.
-
-Example:
 ```yaml
-id: weather_bot
-title: Weather via Messaging
-description: Ask for a city, call Weather API, reply with a multi-day text template, then end.
-type: messaging
-
-parameters:
-  days_default: 3
-
+kind: messaging          # or: events
+id: demo.messaging.flow
+description: Optional summary
 nodes:
-  in:
-    qa:
-      welcome: "Hi there! Let's get your weather forecast."
-      questions:
-        - id: q_location
-          prompt: "👉 What location would you like a forecast for?"
-          answer_type: text
-          max_words: 3
-      routing:
-        - to: forecast_weather
+  router:
+    kind: process/router          # opaque string interpreted by the component/runtime
+    component: vendor.router      # optional; ties to ComponentManifest::id
+    profile: decision-profile     # optional override
+    config: { mode: "intent" }    # free-form JSON/YAML blob
+    routing:                      # arbitrary JSON/YAML; component decides semantics
+      default: handler
 
-  forecast_weather:
-    tool:
-      name: weather_api
-      action: forecast_weather
-    parameters:
-      q: in.q_location
-      days: parameters.days_default
+  handler:
+    kind: component-kind-1
+    component: vendor.component.one
+    config:
+      reply_text: "ack"
     routing:
-      - to: weather_text
+      default: finish
 
-  weather_text:
-    template:
-      text: |
-        Weather for {{forecast_weather.payload.location.name}}, {{forecast_weather.payload.location.country}}:
-        Now: {{forecast_weather.payload.current.condition.text}}, {{forecast_weather.payload.current.temp_c}}°C
-        Forecast (next {{parameters.days_default}} day(s)):
-        {{#forecast_weather.payload.forecast}}
-        - {{date}}: ↑ {{day.maxtemp_c}}°C | ↓ {{day.mintemp_c}}°C — {{day.condition.text}}
-        {{/forecast_weather.payload.forecast}}
-        Thanks! Type /start to check another city.
-    routing:
-      - out
+  finish:
+    kind: messaging/reply         # still opaque; just a string
+    config:
+      text: "Done"
 ```
 
----
+Key rules:
 
-## 4. Node-to-Component Mapping
-| Node type | Component (existing WIT) | Notes |
-|------------|--------------------------|--------|
-| `qa` | `qa.process` | e.g. Ollama LLM or RAG planner |
-| `tool` | `tool.exec` | executes embedded or external tools (e.g. `weatherapi.wasm`) |
-| `template` | `templating.handlebars` | renders inline or packaged templates |
-| `emit` | handled by host | routes to adapter based on `flow.type` |
+1. **Flow kinds** — Only `messaging` and `events`. Future ingress modes are implemented via components + connectors, not additional flow types.
+2. **Opaque identifiers** — `NodeId`, `component`, `kind`, and `profile` are all strings. There are no enums like “qa” or “tool” baked into the schema.
+3. **Insertion order matters** — `Flow.nodes` is an ordered map. The first node is the implicit ingress (no `webhook.in` or `teams.in` node required).
+4. **Routing is component-defined** — `routing` is `serde_json::Value` in the Rust model. Components decide whether it’s `{default: "next"}` or a richer object.
 
-> ✅ No new interfaces — all nodes map to **existing component WITs**.
-
----
-
-## 5. Pack Manifest Essentials
-Inside the `.data` or custom section:
-
-```json
-{
-  "pack_id": "greentic.weather.demo",
-  "version": "0.1.0",
-  "flows": [{ "id": "weather_bot", "type": "messaging" }],
-  "tools": [{ "name": "weather_api", "digest": "sha256:...", "embedded": true }],
-  "imports_required": ["secrets.get","telemetry.emit","tool.invoke"],
-  "policies": { "memory": 128, "timeout_ms": 5000 },
-  "signature": { "alg": "ed25519", "sig": "..." }
-}
-```
+`Flow::validate_components` in `greentic-types` ensures:
+- At least one node exists.
+- Referenced component manifests exist and list the same `FlowKind`.
 
 ---
 
-## 6. Host Runtime Responsibilities
-- Verify signature & blob hashes before load.
-- Provide `secrets.get`, `telemetry.emit`, and `tool.invoke` imports.
-- Enforce per-tenant resource quotas, secret access, and network policy.
-- Manage adapters for each **flow type** (Telegram, HTTP, cron, etc.).
-- Track traces & metrics (OTLP spans labelled `{tenant, flow, node, provider}`).
-- Retry, rate-limit, and deduplicate according to manifest policies.
+## 2. Component Manifests
 
----
+`ComponentManifest` describes a reusable WASM module and how it interacts with the host. All identifiers remain opaque.
 
-## 7. Binding / Policy Example
 ```yaml
-tenant: acme
-flow_type_bindings:
-  messaging:
-    adapter: telegram
-    config: { bot_name: "WeatherDemo" }
-    secrets: [TELEGRAM_BOT_TOKEN]
+id: vendor.component.qa
+version: 1.2.3
+supports: [messaging]
+world: "vendor:component@1.0.0"
+profiles:
+  default: stateless
+  supported: [stateless, cached]
+capabilities:
+  wasi:
+    random: true
+    clocks: true
+    filesystem:
+      mode: sandbox
+      mounts:
+        - name: scratch
+          host_class: scratch
+          guest_path: /tmp
+    env:
+      allow: [RUST_LOG]
+  host:
+    secrets:
+      required: [API_TOKEN]
+    messaging:
+      inbound: true
+      outbound: true
+    telemetry:
+      scope: tenant
+configurators:
+  basic: configure_component_basic
+  full: configure_component_full
+```
+
+Important fields:
+
+- `supports` — `FlowKind`s where the component can run.
+- `profiles` — Named capability bundles. `ComponentManifest::select_profile` handles validation/defaults.
+- `capabilities.wasi` — Filesystem/env/random/clock toggles. Filesystem mode is an enum (`None`, `ReadOnly`, `Sandbox`).
+- `capabilities.host` — `secrets`, `state`, `messaging`, `events`, `http`, `telemetry`. Each struct only expresses interaction patterns (e.g., `messaging.inbound = true`), never business semantics.
+- `configurators` — Optional flows (identified by `FlowId`) that let DX tools run “basic” or “full” configuration sessions. These are regular messaging flows.
+
+---
+
+## 3. Pack Manifests (`PackManifest`)
+
+Thin packs reference flows and components, plus optional profile defaults or connector metadata. They no longer store bindings or component semantics.
+
+```yaml
+id: vendor.demo.pack
+version: 0.1.0
+name: "Demo Pack"
+
+flows:
+  - id: demo.messaging.flow
+    file: flows/messaging.ygtc
 
 components:
-  qa.process:
-    impl: ollama
-    config:
-      base_url: ${OLLAMA_BASE_URL}
-      model: ${OLLAMA_MODEL:qwen2.5:14b}
+  - id: vendor.component.qa
+    version_req: "^1.2"
+    source: "oci://registry/components"
 
-  templating.handlebars: {}
-  tool.exec:
-    tool_map:
-      weather_api:
-        source: embedded
-        action_map:
-          forecast_weather: { entry: forecast_weather }
+profiles:
+  messaging:
+    defaults:
+      handler: stateless
 
-secrets:
-  TELEGRAM_BOT_TOKEN: ${ENV.TELEGRAM_BOT_TOKEN}
-  OLLAMA_BASE_URL: http://localhost:11434
+component_sources:
+  registry: "greentic-store"
+
+connectors:
+  messaging:
+    teams:
+      flow: demo.messaging.flow
+      channel: "support"
 ```
 
----
+Notes:
 
-## 8. Developer Flow
-1. **Write flow(s)** (`flows/*.ygtc`).
-2. **Add tools/templates** if needed.
-3. **Define manifest (`pack.yaml`)**.
-4. **Run `packc build`** → produces signed `pack.wasm`.
-5. **Host loads** with bindings + secrets.
-6. **Ingress event** → `run_flow(flow_id, input)` → components + emits → egress via flow type.
+- `flows` only lists `id` + relative file path; the flow itself carries its kind/nodes.
+- `components` reference `ComponentManifest`s indirectly via `id` + `version_req` (which uses the `SemverReq` helper). `source` is optional (OCI, registry alias, etc.).
+- `profiles`, `component_sources`, `connectors` are intentionally `serde_json::Value` blobs so tenants can decide their own shapes. Tooling should pass them through untouched.
+
+`PackManifest` exposes no binding fields. Hosts generate bindings at runtime using capabilities, profile selection, tenant policy, and environment-specific defaults.
 
 ---
 
-## 9. Example Runtime Chain
-```
-messaging ingress (Telegram) 
-→ qa.process (Ollama) 
-→ tool.exec (weatherapi.wasm)
-→ templating.handlebars 
-→ emit (messaging → Telegram send)
-```
+## 4. Runtime Responsibilities (Recap)
+
+1. **Load pack** — Parse `PackManifest`, load `.ygtc` flows as `Flow`.
+2. **Resolve components** — Fetch `ComponentManifest`s (local `components/` dir, registry resolver trait, etc.).
+3. **Validate flows** — Ensure nodes exist, components support the flow kind, routing references valid nodes (when the component uses simple maps).
+4. **Aggregate capabilities** — Combine component manifest + selected profile (node override → component default) to produce `ComponentCapabilities`.
+5. **Generate bindings** — Hosts such as `greentic-pack` or `greentic-runner` convert capabilities into WASI/host bindings (filesystem mounts, env allow-lists, secrets, etc.). Strict vs. complete binding modes determine whether defaults (scratch dirs, `RUST_LOG`) are injected.
+6. **Execute** — The runner instantiates each node’s WASM component with the generated bindings, feeds it the current payload, and uses the returned route label (plus `node.routing`) to choose the next `NodeId`.
+
+None of these steps rely on domain-specific node kinds; everything hinges on the opaque strings declared in the flow.
 
 ---
 
-## 10. Security & Performance
-- No secrets inside pack; all fetched via `secrets.get`.
-- Host enforces capability whitelist and per-tenant policies.
-- Packs are signed + content-addressed (immutable).
-- Pool Wasm instances for low cold-start latency.
-- Optional AOT compile/cache and per-flow pre-warm.
+## 5. Developer Workflow (recap)
+
+1. Create a pack folder (`manifest.yaml`, `flows/`, optional `components/`).
+2. Author `.ygtc` flows using the schema above.
+3. Reference component manifests via `components` entries (bundled or external).
+4. Run CLI helpers (`greentic-pack inspect`, `greentic-pack validate`, `greentic-pack capabilities`, `greentic-pack bindings`).
+5. Distribute packs via OCI or git; hosts resolve components and execute flows using the shared types.
 
 ---
 
-## 11. Distribution & Deployment
-- Packs are OCI-publishable (`oci://greentic.ai/packs/weather-demo@v0.1.0`).
-- Host can run in:
-  - **Scratch container** (default),
-  - **MicroVM / Unikernel** (isolation),
-  - **Edge Worker** (restricted mode).
-- Helm chart mounts packs, binds secrets, and sets webhook/timer adapters.
+## 6. Alignment Checklist
 
----
+- [ ] Flows only declare `kind`, `id`, `description`, ordered `nodes` (with `kind/profile/component/config/routing`).
+- [ ] Components only express host/WASI capabilities; no semantics like “qa” or “rag”.
+- [ ] Packs only reference flows/components and carry optional opaque metadata.
+- [ ] Bindings and connector wiring stay outside of packs/flows/components.
+- [ ] Docs/tools reference the canonical schemas from `SCHEMAS.md`.
 
-## 12. Minimal Requirements for a New Flow Pack
-✅ Flow `.ygtc` file(s)  
-✅ Optional templates and tools  
-✅ `pack.yaml` manifest  
-✅ Signature (via pack builder)  
-✅ Tested under `greentic-pack-host`  
-
----
-
-### TL;DR
-> **Greentic Flows = tiny YAML graphs inside signed Wasm Packs.**  
-> Each node maps to an existing WIT component (qa, tool, template).  
-> Flows have types (`messaging`, `webhook`, `timer`, …); the host provides adapters for ingress/egress.  
-> Packs are portable, self-contained, signed artifacts — they can run anywhere a verified host exists.
+When in doubt, read `MODELS.md` and the source definitions in `src/flow.rs`, `src/component.rs`, and `src/pack_manifest.rs`.

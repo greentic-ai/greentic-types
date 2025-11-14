@@ -2,7 +2,7 @@
 members = ["greentic-types-macros"]
 
 [workspace.package]
-version = "0.3.2"
+version = "0.4.0"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/greentic-ai/greentic-types"
@@ -30,7 +30,7 @@ serde = ["dep:serde", "dep:serde_with"]
 time = ["dep:time"]
 uuid = ["dep:uuid"]
 schemars = ["dep:schemars", "serde"]
-schema = ["schemars", "dep:anyhow", "dep:serde_json", "std"]
+schema = ["schemars", "dep:anyhow", "std"]
 otel-keys = []
 telemetry-autoinit = [
     "std",
@@ -43,25 +43,27 @@ telemetry-autoinit = [
 ]
 
 [dependencies]
+fnv = { version = "1", default-features = false }
+indexmap = { version = "2.6", default-features = false, features = ["serde"] }
 schemars = { version = "1", features = ["derive"], optional = true }
 semver = { version = "1", features = ["serde"] }
 anyhow = { version = "1", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_with = { version = "3", default-features = false, features = ["macros", "base64"], optional = true }
-serde_json = { version = "1", optional = true }
+serde_json = { version = "1", default-features = false, features = ["alloc"] }
 thiserror = "2"
 time = { version = "0.3", features = ["formatting", "macros", "parsing", "serde"], optional = true }
 uuid = { version = "1", features = ["v4", "serde"], optional = true }
 greentic-telemetry = { version = "0.3", optional = true }
-greentic-types-macros = { version = "0.3", path = "greentic-types-macros", optional = true }
 opentelemetry-otlp = { version = "0.31", optional = true }
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"], optional = true }
 tracing = { version = "0.1", optional = true }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["registry", "std"], optional = true }
 
+greentic-types-macros = { path = "greentic-types-macros", optional = true }
+
 [dev-dependencies]
 schemars = { version = "1", features = ["derive"] }
-serde_json = "1"
 serde_yaml_bw = "2"
 proptest = "1"
 

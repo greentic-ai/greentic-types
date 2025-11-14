@@ -56,6 +56,9 @@ pub const SCHEMA_BASE_URL: &str = "https://greentic-ai.github.io/greentic-types/
 
 pub mod bindings;
 pub mod capabilities;
+pub mod component;
+pub mod flow;
+pub mod pack_manifest;
 pub mod pack_spec;
 
 pub mod context;
@@ -77,10 +80,20 @@ pub use bindings::hints::{
 pub use capabilities::{
     Capabilities, FsCaps, HttpCaps, KvCaps, Limits, NetCaps, SecretsCaps, TelemetrySpec, ToolsCaps,
 };
+pub use component::{
+    ComponentCapabilities, ComponentConfigurators, ComponentManifest, ComponentProfileError,
+    ComponentProfiles, EnvCapabilities, EventsCapabilities, FilesystemCapabilities, FilesystemMode,
+    FilesystemMount, HostCapabilities, HttpCapabilities, MessagingCapabilities,
+    SecretsCapabilities, StateCapabilities, TelemetryCapabilities, TelemetryScope,
+    WasiCapabilities,
+};
 pub use context::{Cloud, DeploymentCtx, Platform};
 pub use error::{ErrorCode, GResult, GreenticError};
+pub use flow::{Flow, FlowKind, FlowNodes, FlowValidationError, Node};
 pub use outcome::Outcome;
 pub use pack::{PackRef, Signature, SignatureAlgorithm};
+pub use pack_manifest::{PackComponentRef, PackFlowRef, PackManifest};
+#[allow(deprecated)]
 pub use pack_spec::{PackSpec, ToolSpec};
 pub use policy::{AllowList, NetworkPolicy, PolicyDecision, Protocol};
 #[cfg(feature = "time")]
@@ -164,6 +177,18 @@ pub mod ids {
     /// Capabilities schema.
     pub const CAPABILITIES: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/capabilities.schema.json";
+    /// Flow schema.
+    pub const FLOW: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/flow.schema.json";
+    /// Node schema.
+    pub const NODE: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/node.schema.json";
+    /// Component manifest schema.
+    pub const COMPONENT_MANIFEST: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/component-manifest.schema.json";
+    /// Pack manifest schema.
+    pub const PACK_MANIFEST: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/pack-manifest.schema.json";
     /// Limits schema.
     pub const LIMITS: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/limits.schema.json";
@@ -227,7 +252,7 @@ pub fn write_all_schemas(out_dir: &std::path::Path) -> anyhow::Result<()> {
 macro_rules! id_newtype {
     ($name:ident, $doc:literal) => {
         #[doc = $doc]
-        #[derive(Clone, Debug, Eq, PartialEq, Hash)]
+        #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
         #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
         #[cfg_attr(feature = "schemars", derive(JsonSchema))]
         #[cfg_attr(feature = "serde", serde(try_from = "String", into = "String"))]

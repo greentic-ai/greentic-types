@@ -4,11 +4,15 @@ use alloc::{string::String, vec::Vec};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-/// Canonical on-disk pack specification (`pack.yaml`).
+/// Canonical on-disk pack specification (`pack.yaml`). Deprecated in favor of [`PackManifest`](crate::pack_manifest::PackManifest).
 ///
 /// Fields default to empty collections to keep additive evolution backwards compatible.
 #[derive(Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[deprecated(
+    since = "0.3.2",
+    note = "Use PackManifest from `pack_manifest` for new work."
+)]
 pub struct PackSpec {
     /// Unique identifier for the pack.
     pub id: String,
