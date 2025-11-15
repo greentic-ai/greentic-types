@@ -3,6 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+- Added `PackKind` to `PackManifest`, optional `host.iac` capabilities for components, and the generic `DeploymentPlan` family shared across runner/deployer repositories.
 - Added the schema exporter binary, GitHub Pages workflow, and [`SCHEMAS.md`](SCHEMAS.md) so IDEs/CLIs can validate documents against canonical `$id`s.
 - Documented feature flags + MSRV (Rust 1.85), introduced the `schema`/`otel-keys` flags, and exposed the crate `VERSION` constant.
 - Hardened ID newtypes and `SemverReq` with `FromStr`/`TryFrom` implementations, serde guards, and property tests ensuring invalid identifiers cannot deserialize.

@@ -57,6 +57,7 @@ pub const SCHEMA_BASE_URL: &str = "https://greentic-ai.github.io/greentic-types/
 pub mod bindings;
 pub mod capabilities;
 pub mod component;
+pub mod deployment;
 pub mod flow;
 pub mod pack_manifest;
 pub mod pack_spec;
@@ -83,16 +84,20 @@ pub use capabilities::{
 pub use component::{
     ComponentCapabilities, ComponentConfigurators, ComponentManifest, ComponentProfileError,
     ComponentProfiles, EnvCapabilities, EventsCapabilities, FilesystemCapabilities, FilesystemMode,
-    FilesystemMount, HostCapabilities, HttpCapabilities, MessagingCapabilities,
+    FilesystemMount, HostCapabilities, HttpCapabilities, IaCCapabilities, MessagingCapabilities,
     SecretsCapabilities, StateCapabilities, TelemetryCapabilities, TelemetryScope,
     WasiCapabilities,
 };
 pub use context::{Cloud, DeploymentCtx, Platform};
+pub use deployment::{
+    ChannelPlan, DeploymentPlan, MessagingPlan, MessagingSubjectPlan, OAuthPlan, RunnerPlan,
+    SecretPlan, TelemetryPlan,
+};
 pub use error::{ErrorCode, GResult, GreenticError};
 pub use flow::{Flow, FlowKind, FlowNodes, FlowValidationError, Node};
 pub use outcome::Outcome;
 pub use pack::{PackRef, Signature, SignatureAlgorithm};
-pub use pack_manifest::{PackComponentRef, PackFlowRef, PackManifest};
+pub use pack_manifest::{PackComponentRef, PackFlowRef, PackKind, PackManifest};
 #[allow(deprecated)]
 pub use pack_spec::{PackSpec, ToolSpec};
 pub use policy::{AllowList, NetworkPolicy, PolicyDecision, Protocol};

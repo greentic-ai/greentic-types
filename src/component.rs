@@ -257,6 +257,12 @@ pub struct HostCapabilities {
         serde(default, skip_serializing_if = "Option::is_none")
     )]
     pub telemetry: Option<TelemetryCapabilities>,
+    /// Infrastructure-as-code artifact permissions.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub iac: Option<IaCCapabilities>,
 }
 
 /// Secret requirements.
@@ -342,6 +348,18 @@ pub enum TelemetryScope {
 pub struct TelemetryCapabilities {
     /// Maximum telemetry scope granted to the component.
     pub scope: TelemetryScope,
+}
+
+/// Infrastructure-as-code host permissions.
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct IaCCapabilities {
+    /// Whether templates/manifests may be written to a preopened path.
+    pub write_templates: bool,
+    /// Whether the component may trigger IaC plan execution via the host.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub execute_plans: bool,
 }
 
 /// Profile resolution errors.

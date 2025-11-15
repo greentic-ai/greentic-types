@@ -122,7 +122,9 @@ let ctx = TenantCtx::new("prod".parse().unwrap(), "acme".parse().unwrap())
 ## Flow, component, and pack models
 - [`Flow`, `Node`, `FlowKind`](src/flow.rs) describe `.ygtc` graphs using insertion-ordered maps so the first node stays the implicit ingress.
 - [`ComponentManifest`](src/component.rs) captures capabilities, configurators, and exposes helpers like `supports_kind` and `select_profile`.
-- [`PackManifest`](src/pack_manifest.rs) bundles flows, component requirements, and opaque profile/source/connector metadata for `.gtpack`.
+- [`PackManifest`](src/pack_manifest.rs) bundles flows, component requirements, opaque profile/source/connector metadata for `.gtpack`, and now includes the optional `PackKind` hint (`application`, `deployment`, or `mixed`).
+- `HostCapabilities` expose generic IaC toggles via the `iac` block so deployment components can request template write/execute access without encoding provider details.
+- [`DeploymentPlan`](src/deployment.rs) is the shared, provider-neutral description of what needs to run for a tenant/environment; deployers and runners exchange it as JSON when orchestrating deployment flows.
 
 Read [MODELS.md](MODELS.md) for the guiding principles: IDs are opaque strings, capabilities only describe host/WASI interaction, and bindings stay outside of these documents.
 

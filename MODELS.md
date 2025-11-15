@@ -22,3 +22,24 @@ every domain. The models exported by `greentic-types` follow three simple rules:
 
 This separation lets humans and small LLMs edit `.ygtc` and `.gtpack` files confidently while hosts
 handle sandboxing, policies, and domain-specific behaviour elsewhere.
+
+## Pack kinds
+
+`PackManifest` now carries an optional `kind` field that can be `application`, `deployment`, or
+`mixed`. It is purely advisory; runtimes still treat flows uniformly. The hint gives CLIs and UX a
+way to highlight packs that primarily operate on deployment plans without forcing new flow kinds.
+
+## Host IaC capabilities
+
+`HostCapabilities` exposes a generic `iac` block so components can declare whether they write
+infrastructure-as-code artifacts and/or trigger plan execution. The flags describe access to a
+preopened filesystem area and an optional “execute plans” hook; no provider names or tool-specific
+semantics appear in `greentic-types`.
+
+## Deployment plans
+
+`DeploymentPlan` is a provider-neutral shape passed between `greentic-pack`, `greentic-runner`, and
+`greentic-deployer`. It lists the pack identity, tenant/environment context, runners, messaging,
+channels, secrets, OAuth clients, telemetry hints, and an `extra` blob for future fields. Nothing in
+the type references regions, clusters, or other provider details—deployment components interpret the
+plan and translate it into concrete infrastructure.

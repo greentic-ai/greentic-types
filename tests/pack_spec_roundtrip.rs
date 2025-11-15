@@ -1,7 +1,8 @@
 #![cfg(feature = "serde")]
 
 use greentic_types::{
-    ComponentManifest, Flow, FlowKind, PackComponentRef, PackFlowRef, PackManifest,
+    ComponentManifest, DeploymentPlan, Flow, FlowKind, PackComponentRef, PackFlowRef, PackKind,
+    PackManifest,
 };
 
 fn roundtrip_yaml_json<T>(doc: &str) -> T
@@ -142,4 +143,119 @@ connectors:
         source: Some("oci://registry/components".into()),
     };
     assert_eq!(manifest.components[0], component_ref);
+}
+
+#[test]
+fn pack_manifest_with_kind_roundtrip() {
+    let doc = r#"
+id: vendor.deploy.pack
+version: 1.0.0
+kind: deployment
+flows: []
+components: []
+"#;
+
+    let manifest: PackManifest = roundtrip_yaml_json(doc);
+    assert_eq!(manifest.kind, Some(PackKind::Deployment));
+}
+
+#[test]
+fn component_manifest_with_iac_capabilities_roundtrip() {
+    let doc = r#"
+id: vendor.component.iac
+version: 0.1.0
+supports:
+  - events
+world: "vendor:deploy@1.0.0"
+profiles:
+  default: iac
+  supported: []
+capabilities:
+  wasi:
+    random: false
+    clocks: false
+    filesystem:
+      mode: sandbox
+      mounts: []
+  host:
+    iac:
+      write_templates: true
+      execute_plans: false
+"#;
+
+    let manifest: ComponentManifest = roundtrip_yaml_json(doc);
+    let iac = manifest
+        .capabilities
+        .host
+        .iac
+        .expect("iac capabilities expected");
+    assert!(iac.write_templates);
+    assert!(!iac.execute_plans);
+}
+
+#[test]
+fn deployment_plan_roundtrip_json() {
+    let doc = r#"
+{
+  "pack_id": "vendor.demo",
+  "pack_version": "1.2.3",
+  "tenant": "tenant-a",
+  "environment": "staging",
+  "runners": [
+    {
+      "name": "demo-runner",
+      "replicas": 2,
+      "capabilities": {
+        "can_run_flows": ["flow-a"]
+      }
+    }
+  ],
+  "messaging": {
+    "logical_cluster": "cluster-1",
+    "subjects": [
+      {
+        "name": "events",
+        "purpose": "eventing",
+        "durable": true,
+        "extra": {}
+      }
+    ],
+    "extra": {}
+  },
+  "channels": [
+    {
+      "name": "webchat",
+      "flow_id": "demo.flow",
+      "kind": "webchat",
+      "config": {}
+    }
+  ],
+  "secrets": [
+    {
+      "key": "API_KEY",
+      "required": true,
+      "scope": "tenant"
+    }
+  ],
+  "oauth": [
+    {
+      "provider_id": "generic",
+      "logical_client_id": "client-a",
+      "redirect_path": "/oauth/callback",
+      "extra": {}
+    }
+  ],
+  "telemetry": {
+    "required": true,
+    "suggested_endpoint": "https://telemetry.local",
+    "extra": {}
+  },
+  "extra": {}
+}
+"#;
+
+    let plan: DeploymentPlan = roundtrip_yaml_json(doc);
+    assert_eq!(plan.pack_id, "vendor.demo");
+    assert_eq!(plan.channels.len(), 1);
+    assert_eq!(plan.secrets[0].key, "API_KEY");
 }

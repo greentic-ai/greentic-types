@@ -13,6 +13,20 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+/// Hint describing the primary purpose of a pack.
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub enum PackKind {
+    /// Normal digital worker packs.
+    Application,
+    /// Packs whose flows primarily operate on deployment plans.
+    Deployment,
+    /// Packs that mix both application and deployment flows.
+    Mixed,
+}
+
 /// Pack manifest describing bundled flows and referenced components.
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -56,6 +70,12 @@ pub struct PackManifest {
         serde(default, skip_serializing_if = "Option::is_none")
     )]
     pub connectors: Option<Value>,
+    /// Optional hint about the primary intent of this pack.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub kind: Option<PackKind>,
 }
 
 /// Flow reference within a pack manifest.
