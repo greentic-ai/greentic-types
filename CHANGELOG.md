@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 - Added generic `EventEnvelope` + `EventId`, provider capability descriptors (`EventProviderDescriptor` with `EventProviderKind`, transports, reliability, ordering), and shared `ChannelMessageEnvelope` + `Attachment` for channel messaging; all derive serde/schemars and export JSON Schemas.
+- Added supply-chain shared types and ID newtypes (RepoRef, ComponentRef, BuildRef, ScanRef, AttestationRef, PolicyRef, StoreRef, RegistryRef) plus BuildPlan/BuildStatus, ScanRequest/ScanResult, signing/verification refs, attestation statements, metadata records, and contexts, with schema exports and serde round-trip tests.
 - Added `PackKind` to `PackManifest`, optional `host.iac` capabilities for components, and the generic `DeploymentPlan` family shared across runner/deployer repositories.
 - Added the schema exporter binary, GitHub Pages workflow, and [`SCHEMAS.md`](SCHEMAS.md) so IDEs/CLIs can validate documents against canonical `$id`s.
 - Documented feature flags + MSRV (Rust 1.85), introduced the `schema`/`otel-keys` flags, and exposed the crate `VERSION` constant.

@@ -9,10 +9,14 @@ use crate::run::RunResult;
 #[cfg(feature = "otel-keys")]
 use crate::telemetry::OtlpKeys;
 use crate::{
-    Attachment, Capabilities, ChannelMessageEnvelope, ComponentId, ComponentManifest,
-    EventEnvelope, EventProviderDescriptor, Flow, FlowId, HashDigest, Limits, Node, NodeFailure,
-    NodeId, NodeStatus, NodeSummary, PackId, PackManifest, RedactionPath, RunStatus, SecretsCaps,
-    SemverReq, TelemetrySpec, TenantContext, ToolsCaps, TranscriptOffset, ids,
+    ArtifactRef, Attachment, AttestationRef, AttestationStatement, BuildPlan, BuildRef,
+    BuildStatus, Capabilities, ChannelMessageEnvelope, ComponentId, ComponentManifest,
+    ComponentRef, EventEnvelope, EventProviderDescriptor, Flow, FlowId, HashDigest, Limits,
+    MetadataRecord, Node, NodeFailure, NodeId, NodeStatus, NodeSummary, PackId, PackManifest,
+    PolicyRef, RedactionPath, RegistryRef, RepoContext, RepoRef, RunStatus, SbomRef, ScanRef,
+    ScanRequest, ScanResult, SecretsCaps, SemverReq, SignRequest, SignatureRef, SigningKeyRef,
+    StatementRef, StoreContext, StoreRef, TelemetrySpec, TenantContext, ToolsCaps,
+    TranscriptOffset, VerifyRequest, VerifyResult, ids,
 };
 use schemars::{JsonSchema, Schema, schema_for};
 
@@ -73,6 +77,34 @@ define_schema_fn!(run_status, RunStatus, ids::RUN_STATUS);
 define_schema_fn!(transcript_offset, TranscriptOffset, ids::TRANSCRIPT_OFFSET);
 define_schema_fn!(tools_caps, ToolsCaps, ids::TOOLS_CAPS);
 define_schema_fn!(secrets_caps, SecretsCaps, ids::SECRETS_CAPS);
+define_schema_fn!(repo_ref, RepoRef, ids::REPO_REF);
+define_schema_fn!(component_ref, ComponentRef, ids::COMPONENT_REF);
+define_schema_fn!(build_ref, BuildRef, ids::BUILD_REF);
+define_schema_fn!(scan_ref, ScanRef, ids::SCAN_REF);
+define_schema_fn!(attestation_ref, AttestationRef, ids::ATTESTATION_REF);
+define_schema_fn!(policy_ref, PolicyRef, ids::POLICY_REF);
+define_schema_fn!(store_ref, StoreRef, ids::STORE_REF);
+define_schema_fn!(registry_ref, RegistryRef, ids::REGISTRY_REF);
+define_schema_fn!(artifact_ref, ArtifactRef, ids::ARTIFACT_REF);
+define_schema_fn!(sbom_ref, SbomRef, ids::SBOM_REF);
+define_schema_fn!(signing_key_ref, SigningKeyRef, ids::SIGNING_KEY_REF);
+define_schema_fn!(signature_ref, SignatureRef, ids::SIGNATURE_REF);
+define_schema_fn!(statement_ref, StatementRef, ids::STATEMENT_REF);
+define_schema_fn!(build_plan, BuildPlan, ids::BUILD_PLAN);
+define_schema_fn!(build_status, BuildStatus, ids::BUILD_STATUS);
+define_schema_fn!(scan_request, ScanRequest, ids::SCAN_REQUEST);
+define_schema_fn!(scan_result, ScanResult, ids::SCAN_RESULT);
+define_schema_fn!(sign_request, SignRequest, ids::SIGN_REQUEST);
+define_schema_fn!(verify_request, VerifyRequest, ids::VERIFY_REQUEST);
+define_schema_fn!(verify_result, VerifyResult, ids::VERIFY_RESULT);
+define_schema_fn!(
+    attestation_statement,
+    AttestationStatement,
+    ids::ATTESTATION_STATEMENT
+);
+define_schema_fn!(metadata_record, MetadataRecord, ids::METADATA_RECORD);
+define_schema_fn!(repo_context, RepoContext, ids::REPO_CONTEXT);
+define_schema_fn!(store_context, StoreContext, ids::STORE_CONTEXT);
 define_schema_fn!(event_envelope, EventEnvelope, ids::EVENT_ENVELOPE);
 define_schema_fn!(
     event_provider_descriptor,
@@ -131,6 +163,30 @@ schema_entries_vec! {
     { transcript_offset, "transcript-offset", ids::TRANSCRIPT_OFFSET },
     { tools_caps, "tools-caps", ids::TOOLS_CAPS },
     { secrets_caps, "secrets-caps", ids::SECRETS_CAPS },
+    { repo_ref, "repo-ref", ids::REPO_REF },
+    { component_ref, "component-ref", ids::COMPONENT_REF },
+    { build_ref, "build-ref", ids::BUILD_REF },
+    { scan_ref, "scan-ref", ids::SCAN_REF },
+    { attestation_ref, "attestation-ref", ids::ATTESTATION_REF },
+    { policy_ref, "policy-ref", ids::POLICY_REF },
+    { store_ref, "store-ref", ids::STORE_REF },
+    { registry_ref, "registry-ref", ids::REGISTRY_REF },
+    { artifact_ref, "artifact-ref", ids::ARTIFACT_REF },
+    { sbom_ref, "sbom-ref", ids::SBOM_REF },
+    { signing_key_ref, "signing-key-ref", ids::SIGNING_KEY_REF },
+    { signature_ref, "signature-ref", ids::SIGNATURE_REF },
+    { statement_ref, "statement-ref", ids::STATEMENT_REF },
+    { build_plan, "build-plan", ids::BUILD_PLAN },
+    { build_status, "build-status", ids::BUILD_STATUS },
+    { scan_request, "scan-request", ids::SCAN_REQUEST },
+    { scan_result, "scan-result", ids::SCAN_RESULT },
+    { sign_request, "sign-request", ids::SIGN_REQUEST },
+    { verify_request, "verify-request", ids::VERIFY_REQUEST },
+    { verify_result, "verify-result", ids::VERIFY_RESULT },
+    { attestation_statement, "attestation-statement", ids::ATTESTATION_STATEMENT },
+    { metadata_record, "metadata-record", ids::METADATA_RECORD },
+    { repo_context, "repo-context", ids::REPO_CONTEXT },
+    { store_context, "store-context", ids::STORE_CONTEXT },
     { event_envelope, "event-envelope", ids::EVENT_ENVELOPE },
     { event_provider_descriptor, "event-provider-descriptor", ids::EVENT_PROVIDER_DESCRIPTOR },
     { channel_message_envelope, "channel-message-envelope", ids::CHANNEL_MESSAGE_ENVELOPE },

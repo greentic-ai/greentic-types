@@ -64,6 +64,7 @@ pub mod flow;
 pub mod messaging;
 pub mod pack_manifest;
 pub mod pack_spec;
+pub mod supply_chain;
 
 pub mod context;
 pub mod error;
@@ -115,6 +116,11 @@ pub use run::{NodeFailure, NodeStatus, NodeSummary, RunStatus, TranscriptOffset}
 pub use session::canonical_session_key;
 pub use session::{SessionCursor, SessionData, SessionKey};
 pub use state::{StateKey, StatePath};
+pub use supply_chain::{
+    AttestationStatement, BuildPlan, BuildStatus, BuildStatusKind, MetadataRecord, PredicateType,
+    RepoContext, ScanKind, ScanRequest, ScanResult, ScanStatusKind, SignRequest, StoreContext,
+    VerifyRequest, VerifyResult,
+};
 #[cfg(feature = "otel-keys")]
 pub use telemetry::OtlpKeys;
 pub use telemetry::SpanContext;
@@ -230,6 +236,78 @@ pub mod ids {
     /// Secrets capability schema.
     pub const SECRETS_CAPS: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/secrets-caps.schema.json";
+    /// Repository reference schema.
+    pub const REPO_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/repo-ref.schema.json";
+    /// Component reference schema.
+    pub const COMPONENT_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/component-ref.schema.json";
+    /// Build reference schema.
+    pub const BUILD_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/build-ref.schema.json";
+    /// Scan reference schema.
+    pub const SCAN_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/scan-ref.schema.json";
+    /// Attestation reference schema.
+    pub const ATTESTATION_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/attestation-ref.schema.json";
+    /// Policy reference schema.
+    pub const POLICY_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/policy-ref.schema.json";
+    /// Store reference schema.
+    pub const STORE_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/store-ref.schema.json";
+    /// Registry reference schema.
+    pub const REGISTRY_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/registry-ref.schema.json";
+    /// Artifact reference schema.
+    pub const ARTIFACT_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/artifact-ref.schema.json";
+    /// SBOM reference schema.
+    pub const SBOM_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/sbom-ref.schema.json";
+    /// Signing key reference schema.
+    pub const SIGNING_KEY_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/signing-key-ref.schema.json";
+    /// Signature reference schema.
+    pub const SIGNATURE_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/signature-ref.schema.json";
+    /// Statement reference schema.
+    pub const STATEMENT_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/statement-ref.schema.json";
+    /// Build plan schema.
+    pub const BUILD_PLAN: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/build-plan.schema.json";
+    /// Build status schema.
+    pub const BUILD_STATUS: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/build-status.schema.json";
+    /// Scan request schema.
+    pub const SCAN_REQUEST: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/scan-request.schema.json";
+    /// Scan result schema.
+    pub const SCAN_RESULT: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/scan-result.schema.json";
+    /// Sign request schema.
+    pub const SIGN_REQUEST: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/sign-request.schema.json";
+    /// Verify request schema.
+    pub const VERIFY_REQUEST: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/verify-request.schema.json";
+    /// Verify result schema.
+    pub const VERIFY_RESULT: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/verify-result.schema.json";
+    /// Attestation statement schema.
+    pub const ATTESTATION_STATEMENT: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/attestation-statement.schema.json";
+    /// Metadata record schema.
+    pub const METADATA_RECORD: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/metadata-record.schema.json";
+    /// Repository context schema.
+    pub const REPO_CONTEXT: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/repo-context.schema.json";
+    /// Store context schema.
+    pub const STORE_CONTEXT: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/store-context.schema.json";
     /// Event envelope schema.
     pub const EVENT_ENVELOPE: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/event-envelope.schema.json";
@@ -350,6 +428,34 @@ id_newtype!(
 );
 id_newtype!(FlowId, "Identifier referencing a flow inside a pack.");
 id_newtype!(NodeId, "Identifier referencing a node inside a flow graph.");
+id_newtype!(RepoRef, "Repository reference within a supply chain.");
+id_newtype!(
+    ComponentRef,
+    "Supply-chain component reference (distinct from pack ComponentId)."
+);
+id_newtype!(BuildRef, "Build reference within a supply chain.");
+id_newtype!(ScanRef, "Scan reference within a supply chain.");
+id_newtype!(
+    AttestationRef,
+    "Attestation reference within a supply chain."
+);
+id_newtype!(PolicyRef, "Policy reference within a supply chain.");
+id_newtype!(StoreRef, "Content store reference within a supply chain.");
+id_newtype!(
+    RegistryRef,
+    "Registry reference for OCI or artifact storage."
+);
+id_newtype!(
+    ArtifactRef,
+    "Artifact reference within a build or scan result."
+);
+id_newtype!(
+    SbomRef,
+    "Reference to a Software Bill of Materials artifact."
+);
+id_newtype!(SigningKeyRef, "Reference to a signing key handle.");
+id_newtype!(SignatureRef, "Reference to a generated signature.");
+id_newtype!(StatementRef, "Reference to an attestation statement.");
 
 /// Compact tenant summary propagated to developers and tooling.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
