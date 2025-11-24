@@ -9,9 +9,10 @@ use crate::run::RunResult;
 #[cfg(feature = "otel-keys")]
 use crate::telemetry::OtlpKeys;
 use crate::{
-    Capabilities, ComponentId, ComponentManifest, Flow, FlowId, HashDigest, Limits, Node,
-    NodeFailure, NodeId, NodeStatus, NodeSummary, PackId, PackManifest, RedactionPath, RunStatus,
-    SecretsCaps, SemverReq, TelemetrySpec, TenantContext, ToolsCaps, TranscriptOffset, ids,
+    Attachment, Capabilities, ChannelMessageEnvelope, ComponentId, ComponentManifest,
+    EventEnvelope, EventProviderDescriptor, Flow, FlowId, HashDigest, Limits, Node, NodeFailure,
+    NodeId, NodeStatus, NodeSummary, PackId, PackManifest, RedactionPath, RunStatus, SecretsCaps,
+    SemverReq, TelemetrySpec, TenantContext, ToolsCaps, TranscriptOffset, ids,
 };
 use schemars::{JsonSchema, Schema, schema_for};
 
@@ -72,6 +73,18 @@ define_schema_fn!(run_status, RunStatus, ids::RUN_STATUS);
 define_schema_fn!(transcript_offset, TranscriptOffset, ids::TRANSCRIPT_OFFSET);
 define_schema_fn!(tools_caps, ToolsCaps, ids::TOOLS_CAPS);
 define_schema_fn!(secrets_caps, SecretsCaps, ids::SECRETS_CAPS);
+define_schema_fn!(event_envelope, EventEnvelope, ids::EVENT_ENVELOPE);
+define_schema_fn!(
+    event_provider_descriptor,
+    EventProviderDescriptor,
+    ids::EVENT_PROVIDER_DESCRIPTOR
+);
+define_schema_fn!(
+    channel_message_envelope,
+    ChannelMessageEnvelope,
+    ids::CHANNEL_MESSAGE_ENVELOPE
+);
+define_schema_fn!(attachment, Attachment, ids::ATTACHMENT);
 #[cfg(feature = "otel-keys")]
 define_schema_fn!(otlp_keys, OtlpKeys, ids::OTLP_KEYS);
 #[cfg(feature = "time")]
@@ -118,6 +131,10 @@ schema_entries_vec! {
     { transcript_offset, "transcript-offset", ids::TRANSCRIPT_OFFSET },
     { tools_caps, "tools-caps", ids::TOOLS_CAPS },
     { secrets_caps, "secrets-caps", ids::SECRETS_CAPS },
+    { event_envelope, "event-envelope", ids::EVENT_ENVELOPE },
+    { event_provider_descriptor, "event-provider-descriptor", ids::EVENT_PROVIDER_DESCRIPTOR },
+    { channel_message_envelope, "channel-message-envelope", ids::CHANNEL_MESSAGE_ENVELOPE },
+    { attachment, "attachment", ids::ATTACHMENT },
     #[cfg(feature = "otel-keys")]
     { otlp_keys, "otlp-keys", ids::OTLP_KEYS },
     #[cfg(feature = "time")]

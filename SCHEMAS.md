@@ -34,6 +34,10 @@ The `bin/export-schemas.rs` helper (or `greentic_types::write_all_schemas`) mate
 | TranscriptOffset | https://greentic-ai.github.io/greentic-types/schemas/v1/transcript-offset.schema.json |
 | ToolsCaps | https://greentic-ai.github.io/greentic-types/schemas/v1/tools-caps.schema.json |
 | SecretsCaps | https://greentic-ai.github.io/greentic-types/schemas/v1/secrets-caps.schema.json |
+| EventEnvelope | https://greentic-ai.github.io/greentic-types/schemas/v1/event-envelope.schema.json |
+| EventProviderDescriptor | https://greentic-ai.github.io/greentic-types/schemas/v1/event-provider-descriptor.schema.json |
+| ChannelMessageEnvelope | https://greentic-ai.github.io/greentic-types/schemas/v1/channel-message-envelope.schema.json |
+| Attachment | https://greentic-ai.github.io/greentic-types/schemas/v1/attachment.schema.json |
 | OtlpKeys | https://greentic-ai.github.io/greentic-types/schemas/v1/otlp-keys.schema.json |
 | RunResult | https://greentic-ai.github.io/greentic-types/schemas/v1/run-result.schema.json |
 

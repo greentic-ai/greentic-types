@@ -34,7 +34,7 @@ fn flow_with_node(component: &str, kind: FlowKind) -> Flow {
     );
     Flow {
         kind,
-        id: format!("{}.flow", component).parse().unwrap(),
+        id: format!("{component}.flow").parse().unwrap(),
         description: None,
         nodes,
     }

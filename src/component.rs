@@ -383,8 +383,7 @@ impl core::fmt::Display for ComponentProfileError {
             } => {
                 write!(
                     f,
-                    "profile `{}` is not supported; known profiles: {:?}",
-                    requested, supported
+                    "profile `{requested}` is not supported; known profiles: {supported:?}"
                 )
             }
         }

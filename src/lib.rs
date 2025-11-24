@@ -58,7 +58,10 @@ pub mod bindings;
 pub mod capabilities;
 pub mod component;
 pub mod deployment;
+pub mod events;
+pub mod events_provider;
 pub mod flow;
+pub mod messaging;
 pub mod pack_manifest;
 pub mod pack_spec;
 
@@ -94,7 +97,12 @@ pub use deployment::{
     SecretPlan, TelemetryPlan,
 };
 pub use error::{ErrorCode, GResult, GreenticError};
+pub use events::{EventEnvelope, EventId, EventMetadata};
+pub use events_provider::{
+    EventProviderDescriptor, EventProviderKind, OrderingKind, ReliabilityKind, TransportKind,
+};
 pub use flow::{Flow, FlowKind, FlowNodes, FlowValidationError, Node};
+pub use messaging::{Attachment, ChannelMessageEnvelope, MessageMetadata};
 pub use outcome::Outcome;
 pub use pack::{PackRef, Signature, SignatureAlgorithm};
 pub use pack_manifest::{PackComponentRef, PackFlowRef, PackKind, PackManifest};
@@ -134,7 +142,8 @@ use alloc::boxed::Box;
 #[cfg(feature = "std")]
 use std::error::Error as StdError;
 
-fn validate_identifier(value: &str, label: &str) -> GResult<()> {
+/// Validates identifiers to ensure they are non-empty and ASCII-safe.
+pub(crate) fn validate_identifier(value: &str, label: &str) -> GResult<()> {
     if value.is_empty() {
         return Err(GreenticError::new(
             ErrorCode::InvalidInput,
@@ -221,6 +230,16 @@ pub mod ids {
     /// Secrets capability schema.
     pub const SECRETS_CAPS: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/secrets-caps.schema.json";
+    /// Event envelope schema.
+    pub const EVENT_ENVELOPE: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/event-envelope.schema.json";
+    /// Event provider descriptor schema.
+    pub const EVENT_PROVIDER_DESCRIPTOR: &str = "https://greentic-ai.github.io/greentic-types/schemas/v1/event-provider-descriptor.schema.json";
+    /// Channel message envelope schema.
+    pub const CHANNEL_MESSAGE_ENVELOPE: &str = "https://greentic-ai.github.io/greentic-types/schemas/v1/channel-message-envelope.schema.json";
+    /// Attachment schema.
+    pub const ATTACHMENT: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/attachment.schema.json";
     /// OTLP attribute key schema.
     pub const OTLP_KEYS: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/otlp-keys.schema.json";
