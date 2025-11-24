@@ -10,13 +10,17 @@ use crate::run::RunResult;
 use crate::telemetry::OtlpKeys;
 use crate::{
     ArtifactRef, Attachment, AttestationRef, AttestationStatement, BuildPlan, BuildRef,
-    BuildStatus, Capabilities, ChannelMessageEnvelope, ComponentId, ComponentManifest,
-    ComponentRef, EventEnvelope, EventProviderDescriptor, Flow, FlowId, HashDigest, Limits,
-    MetadataRecord, Node, NodeFailure, NodeId, NodeStatus, NodeSummary, PackId, PackManifest,
-    PolicyRef, RedactionPath, RegistryRef, RepoContext, RepoRef, RunStatus, SbomRef, ScanRef,
-    ScanRequest, ScanResult, SecretsCaps, SemverReq, SignRequest, SignatureRef, SigningKeyRef,
-    StatementRef, StoreContext, StoreRef, TelemetrySpec, TenantContext, ToolsCaps,
-    TranscriptOffset, VerifyRequest, VerifyResult, ids,
+    BuildStatus, BundleSpec, Capabilities, CapabilityMap, ChannelMessageEnvelope, Collection,
+    ComponentId, ComponentManifest, ComponentRef, ConnectionKind, DesiredState,
+    DesiredStateExportSpec, DesiredSubscriptionEntry, Environment, EnvironmentRef, EventEnvelope,
+    EventProviderDescriptor, Flow, FlowId, HashDigest, LayoutSection, Limits, MetadataRecord,
+    MetadataRecordRef, Node, NodeFailure, NodeId, NodeStatus, NodeSummary, PackId, PackManifest,
+    PackOrComponentRef, PlanLimits, PolicyRef, PriceModel, ProductOverride, RedactionPath,
+    RegistryRef, RepoContext, RepoRef, RunStatus, SbomRef, ScanRef, ScanRequest, ScanResult,
+    SecretsCaps, SemverReq, SignRequest, SignatureRef, SigningKeyRef, StatementRef, StoreContext,
+    StoreFront, StorePlan, StoreProduct, StoreProductKind, StoreRef, Subscription,
+    SubscriptionStatus, TelemetrySpec, TenantContext, Theme, ToolsCaps, TranscriptOffset,
+    VerifyRequest, VerifyResult, VersionStrategy, ids,
 };
 use schemars::{JsonSchema, Schema, schema_for};
 
@@ -90,6 +94,23 @@ define_schema_fn!(sbom_ref, SbomRef, ids::SBOM_REF);
 define_schema_fn!(signing_key_ref, SigningKeyRef, ids::SIGNING_KEY_REF);
 define_schema_fn!(signature_ref, SignatureRef, ids::SIGNATURE_REF);
 define_schema_fn!(statement_ref, StatementRef, ids::STATEMENT_REF);
+define_schema_fn!(
+    metadata_record_ref,
+    MetadataRecordRef,
+    ids::METADATA_RECORD_REF
+);
+define_schema_fn!(environment_ref, EnvironmentRef, ids::ENVIRONMENT_REF);
+define_schema_fn!(distributor_ref, crate::DistributorRef, ids::DISTRIBUTOR_REF);
+define_schema_fn!(storefront_id, crate::StoreFrontId, ids::STOREFRONT_ID);
+define_schema_fn!(
+    store_product_id,
+    crate::StoreProductId,
+    ids::STORE_PRODUCT_ID
+);
+define_schema_fn!(store_plan_id, crate::StorePlanId, ids::STORE_PLAN_ID);
+define_schema_fn!(subscription_id, crate::SubscriptionId, ids::SUBSCRIPTION_ID);
+define_schema_fn!(bundle_id, crate::BundleId, ids::BUNDLE_ID);
+define_schema_fn!(collection_id, crate::CollectionId, ids::COLLECTION_ID);
 define_schema_fn!(build_plan, BuildPlan, ids::BUILD_PLAN);
 define_schema_fn!(build_status, BuildStatus, ids::BUILD_STATUS);
 define_schema_fn!(scan_request, ScanRequest, ids::SCAN_REQUEST);
@@ -117,6 +138,47 @@ define_schema_fn!(
     ids::CHANNEL_MESSAGE_ENVELOPE
 );
 define_schema_fn!(attachment, Attachment, ids::ATTACHMENT);
+define_schema_fn!(bundle_spec, BundleSpec, ids::BUNDLE);
+define_schema_fn!(
+    desired_state_export_spec,
+    DesiredStateExportSpec,
+    ids::DESIRED_STATE_EXPORT
+);
+define_schema_fn!(desired_state, DesiredState, ids::DESIRED_STATE);
+define_schema_fn!(
+    desired_subscription_entry,
+    DesiredSubscriptionEntry,
+    ids::DESIRED_SUBSCRIPTION_ENTRY
+);
+define_schema_fn!(storefront, StoreFront, ids::STOREFRONT);
+define_schema_fn!(store_product, StoreProduct, ids::STORE_PRODUCT);
+define_schema_fn!(store_plan, StorePlan, ids::STORE_PLAN);
+define_schema_fn!(capability_map, CapabilityMap, ids::CAPABILITY_MAP);
+define_schema_fn!(subscription, Subscription, ids::SUBSCRIPTION);
+define_schema_fn!(environment, Environment, ids::ENVIRONMENT);
+define_schema_fn!(theme, Theme, ids::THEME);
+define_schema_fn!(layout_section, LayoutSection, ids::LAYOUT_SECTION);
+define_schema_fn!(collection, Collection, ids::COLLECTION);
+define_schema_fn!(product_override, ProductOverride, ids::PRODUCT_OVERRIDE);
+define_schema_fn!(
+    store_product_kind,
+    StoreProductKind,
+    ids::STORE_PRODUCT_KIND
+);
+define_schema_fn!(version_strategy, VersionStrategy, ids::VERSION_STRATEGY);
+define_schema_fn!(connection_kind, ConnectionKind, ids::CONNECTION_KIND);
+define_schema_fn!(
+    pack_or_component_ref,
+    PackOrComponentRef,
+    ids::PACK_OR_COMPONENT_REF
+);
+define_schema_fn!(plan_limits, PlanLimits, ids::PLAN_LIMITS);
+define_schema_fn!(price_model, PriceModel, ids::PRICE_MODEL);
+define_schema_fn!(
+    subscription_status,
+    SubscriptionStatus,
+    ids::SUBSCRIPTION_STATUS
+);
 #[cfg(feature = "otel-keys")]
 define_schema_fn!(otlp_keys, OtlpKeys, ids::OTLP_KEYS);
 #[cfg(feature = "time")]
@@ -176,6 +238,24 @@ schema_entries_vec! {
     { signing_key_ref, "signing-key-ref", ids::SIGNING_KEY_REF },
     { signature_ref, "signature-ref", ids::SIGNATURE_REF },
     { statement_ref, "statement-ref", ids::STATEMENT_REF },
+    { metadata_record_ref, "metadata-record-ref", ids::METADATA_RECORD_REF },
+    { environment_ref, "environment-ref", ids::ENVIRONMENT_REF },
+    { distributor_ref, "distributor-ref", ids::DISTRIBUTOR_REF },
+    { storefront_id, "storefront-id", ids::STOREFRONT_ID },
+    { store_product_id, "store-product-id", ids::STORE_PRODUCT_ID },
+    { store_plan_id, "store-plan-id", ids::STORE_PLAN_ID },
+    { subscription_id, "subscription-id", ids::SUBSCRIPTION_ID },
+    { bundle_id, "bundle-id", ids::BUNDLE_ID },
+    { collection_id, "collection-id", ids::COLLECTION_ID },
+    { metadata_record_ref, "metadata-record-ref", ids::METADATA_RECORD_REF },
+    { environment_ref, "environment-ref", ids::ENVIRONMENT_REF },
+    { distributor_ref, "distributor-ref", ids::DISTRIBUTOR_REF },
+    { storefront_id, "storefront-id", ids::STOREFRONT_ID },
+    { store_product_id, "store-product-id", ids::STORE_PRODUCT_ID },
+    { store_plan_id, "store-plan-id", ids::STORE_PLAN_ID },
+    { subscription_id, "subscription-id", ids::SUBSCRIPTION_ID },
+    { bundle_id, "bundle-id", ids::BUNDLE_ID },
+    { collection_id, "collection-id", ids::COLLECTION_ID },
     { build_plan, "build-plan", ids::BUILD_PLAN },
     { build_status, "build-status", ids::BUILD_STATUS },
     { scan_request, "scan-request", ids::SCAN_REQUEST },
@@ -191,6 +271,27 @@ schema_entries_vec! {
     { event_provider_descriptor, "event-provider-descriptor", ids::EVENT_PROVIDER_DESCRIPTOR },
     { channel_message_envelope, "channel-message-envelope", ids::CHANNEL_MESSAGE_ENVELOPE },
     { attachment, "attachment", ids::ATTACHMENT },
+    { bundle_spec, "bundle", ids::BUNDLE },
+    { desired_state_export_spec, "desired-state-export", ids::DESIRED_STATE_EXPORT },
+    { desired_state, "desired-state", ids::DESIRED_STATE },
+    { desired_subscription_entry, "desired-subscription-entry", ids::DESIRED_SUBSCRIPTION_ENTRY },
+    { storefront, "storefront", ids::STOREFRONT },
+    { store_product, "store-product", ids::STORE_PRODUCT },
+    { store_plan, "store-plan", ids::STORE_PLAN },
+    { capability_map, "capability-map", ids::CAPABILITY_MAP },
+    { subscription, "subscription", ids::SUBSCRIPTION },
+    { environment, "environment", ids::ENVIRONMENT },
+    { theme, "theme", ids::THEME },
+    { layout_section, "layout-section", ids::LAYOUT_SECTION },
+    { collection, "collection", ids::COLLECTION },
+    { product_override, "product-override", ids::PRODUCT_OVERRIDE },
+    { store_product_kind, "store-product-kind", ids::STORE_PRODUCT_KIND },
+    { version_strategy, "version-strategy", ids::VERSION_STRATEGY },
+    { connection_kind, "connection-kind", ids::CONNECTION_KIND },
+    { pack_or_component_ref, "pack-or-component-ref", ids::PACK_OR_COMPONENT_REF },
+    { plan_limits, "plan-limits", ids::PLAN_LIMITS },
+    { price_model, "price-model", ids::PRICE_MODEL },
+    { subscription_status, "subscription-status", ids::SUBSCRIPTION_STATUS },
     #[cfg(feature = "otel-keys")]
     { otlp_keys, "otlp-keys", ids::OTLP_KEYS },
     #[cfg(feature = "time")]

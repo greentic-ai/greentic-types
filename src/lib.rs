@@ -64,6 +64,7 @@ pub mod flow;
 pub mod messaging;
 pub mod pack_manifest;
 pub mod pack_spec;
+pub mod store;
 pub mod supply_chain;
 
 pub mod context;
@@ -116,6 +117,12 @@ pub use run::{NodeFailure, NodeStatus, NodeSummary, RunStatus, TranscriptOffset}
 pub use session::canonical_session_key;
 pub use session::{SessionCursor, SessionData, SessionKey};
 pub use state::{StateKey, StatePath};
+pub use store::{
+    BundleSpec, CapabilityMap, Collection, ConnectionKind, DesiredState, DesiredStateExportSpec,
+    DesiredSubscriptionEntry, Environment, LayoutSection, LayoutSectionKind, PackOrComponentRef,
+    PlanLimits, PriceModel, ProductOverride, StoreFront, StorePlan, StoreProduct, StoreProductKind,
+    Subscription, SubscriptionStatus, Theme, VersionStrategy,
+};
 pub use supply_chain::{
     AttestationStatement, BuildPlan, BuildStatus, BuildStatusKind, MetadataRecord, PredicateType,
     RepoContext, ScanKind, ScanRequest, ScanResult, ScanStatusKind, SignRequest, StoreContext,
@@ -275,6 +282,57 @@ pub mod ids {
     /// Statement reference schema.
     pub const STATEMENT_REF: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/statement-ref.schema.json";
+    /// Metadata record reference schema.
+    pub const METADATA_RECORD_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/metadata-record-ref.schema.json";
+    /// Environment reference schema.
+    pub const ENVIRONMENT_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/environment-ref.schema.json";
+    /// Distributor reference schema.
+    pub const DISTRIBUTOR_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/distributor-ref.schema.json";
+    /// Storefront identifier schema.
+    pub const STOREFRONT_ID: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/storefront-id.schema.json";
+    /// Store product identifier schema.
+    pub const STORE_PRODUCT_ID: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/store-product-id.schema.json";
+    /// Store plan identifier schema.
+    pub const STORE_PLAN_ID: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/store-plan-id.schema.json";
+    /// Subscription identifier schema.
+    pub const SUBSCRIPTION_ID: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/subscription-id.schema.json";
+    /// Bundle identifier schema.
+    pub const BUNDLE_ID: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/bundle-id.schema.json";
+    /// Collection identifier schema.
+    pub const COLLECTION_ID: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/collection-id.schema.json";
+    /// Capability map schema.
+    pub const CAPABILITY_MAP: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/capability-map.schema.json";
+    /// Store product kind schema.
+    pub const STORE_PRODUCT_KIND: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/store-product-kind.schema.json";
+    /// Version strategy schema.
+    pub const VERSION_STRATEGY: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/version-strategy.schema.json";
+    /// Connection kind schema.
+    pub const CONNECTION_KIND: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/connection-kind.schema.json";
+    /// Pack or component reference schema.
+    pub const PACK_OR_COMPONENT_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/pack-or-component-ref.schema.json";
+    /// Plan limits schema.
+    pub const PLAN_LIMITS: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/plan-limits.schema.json";
+    /// Price model schema.
+    pub const PRICE_MODEL: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/price-model.schema.json";
+    /// Subscription status schema.
+    pub const SUBSCRIPTION_STATUS: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/subscription-status.schema.json";
     /// Build plan schema.
     pub const BUILD_PLAN: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/build-plan.schema.json";
@@ -308,6 +366,44 @@ pub mod ids {
     /// Store context schema.
     pub const STORE_CONTEXT: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/store-context.schema.json";
+    /// Bundle schema.
+    pub const BUNDLE: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/bundle.schema.json";
+    /// Bundle export specification schema.
+    pub const DESIRED_STATE_EXPORT: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/desired-state-export.schema.json";
+    /// Desired state schema.
+    pub const DESIRED_STATE: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/desired-state.schema.json";
+    /// Desired subscription entry schema.
+    pub const DESIRED_SUBSCRIPTION_ENTRY: &str = "https://greentic-ai.github.io/greentic-types/schemas/v1/desired-subscription-entry.schema.json";
+    /// Storefront schema.
+    pub const STOREFRONT: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/storefront.schema.json";
+    /// Store product schema.
+    pub const STORE_PRODUCT: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/store-product.schema.json";
+    /// Store plan schema.
+    pub const STORE_PLAN: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/store-plan.schema.json";
+    /// Subscription schema.
+    pub const SUBSCRIPTION: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/subscription.schema.json";
+    /// Environment schema.
+    pub const ENVIRONMENT: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/environment.schema.json";
+    /// Store theme schema.
+    pub const THEME: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/theme.schema.json";
+    /// Layout section schema.
+    pub const LAYOUT_SECTION: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/layout-section.schema.json";
+    /// Collection schema.
+    pub const COLLECTION: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/collection.schema.json";
+    /// Product override schema.
+    pub const PRODUCT_OVERRIDE: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/product-override.schema.json";
     /// Event envelope schema.
     pub const EVENT_ENVELOPE: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/event-envelope.schema.json";
@@ -428,6 +524,29 @@ id_newtype!(
 );
 id_newtype!(FlowId, "Identifier referencing a flow inside a pack.");
 id_newtype!(NodeId, "Identifier referencing a node inside a flow graph.");
+id_newtype!(
+    EnvironmentRef,
+    "Identifier referencing a deployment environment."
+);
+id_newtype!(
+    DistributorRef,
+    "Identifier referencing a distributor instance."
+);
+id_newtype!(StoreFrontId, "Identifier referencing a storefront.");
+id_newtype!(
+    StoreProductId,
+    "Identifier referencing a product in the store catalog."
+);
+id_newtype!(
+    StorePlanId,
+    "Identifier referencing a plan for a store product."
+);
+id_newtype!(
+    SubscriptionId,
+    "Identifier referencing a subscription entry."
+);
+id_newtype!(BundleId, "Identifier referencing a distributor bundle.");
+id_newtype!(CollectionId, "Identifier referencing a product collection.");
 id_newtype!(RepoRef, "Repository reference within a supply chain.");
 id_newtype!(
     ComponentRef,
@@ -456,6 +575,10 @@ id_newtype!(
 id_newtype!(SigningKeyRef, "Reference to a signing key handle.");
 id_newtype!(SignatureRef, "Reference to a generated signature.");
 id_newtype!(StatementRef, "Reference to an attestation statement.");
+id_newtype!(
+    MetadataRecordRef,
+    "Reference to a metadata record attached to artifacts or bundles."
+);
 
 /// Compact tenant summary propagated to developers and tooling.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
