@@ -3,10 +3,10 @@
 use greentic_types::{
     AllowList, Capabilities, ComponentId, ErrorCode, FsCaps, GreenticError, HashDigest, HttpCaps,
     Impersonation, InvocationDeadline, KvCaps, Limits, NetCaps, NetworkPolicy, NodeFailure, NodeId,
-    NodeStatus, NodeSummary, Outcome, PackId, PackRef, PolicyDecision, RedactionPath, RunStatus,
-    SecretsCaps, SemverReq, SessionCursor, SessionKey, Signature, SignatureAlgorithm, SpanContext,
-    StateKey, StatePath, TelemetrySpec, TenantContext, TenantCtx, TenantIdentity, ToolsCaps,
-    TranscriptOffset,
+    NodeStatus, NodeSummary, Outcome, PackId, PackRef, PolicyDecision, PolicyDecisionStatus,
+    RedactionPath, RunStatus, SecretsCaps, SemverReq, SessionCursor, SessionKey, Signature,
+    SignatureAlgorithm, SpanContext, StateKey, StatePath, TelemetrySpec, TenantContext, TenantCtx,
+    TenantIdentity, ToolsCaps, TranscriptOffset,
 };
 #[cfg(feature = "time")]
 use greentic_types::{FlowId, RunResult};
@@ -107,6 +107,8 @@ fn policy_roundtrip() {
     let decision = PolicyDecision {
         allow: true,
         reason: Some("matched allow list".into()),
+        status: Some(PolicyDecisionStatus::Allow),
+        reasons: vec!["matched allow list".into()],
     };
 
     assert_roundtrip(&policy);

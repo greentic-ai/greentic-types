@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 - Added store/distributor models and IDs (StoreFrontId, StoreProductId, StorePlanId, SubscriptionId, EnvironmentRef, DistributorRef, BundleId, CollectionId, MetadataRecordRef) and schemas.
 - Storefront/cms models: Theme, LayoutSection, Collection, ProductOverride, StoreFront with serde/schemars and tests.
 - Catalog/pricing models: StoreProduct (+CapabilityMap, VersionStrategy), StorePlan (+PriceModel, PlanLimits), Subscription (+status), DesiredState (+entries), BundleSpec, DesiredStateExportSpec, Environment (+ConnectionKind); wired into schema exports and round-trip tests.
+- Extended shared models with tenant attributes, supply-chain and policy/distribution refs (branch/commit/webhook/version/attestation/policy-input/oci/build-log), Environment name + helper, RolloutStatus, CapabilityMap as open map, VersionStrategy tagged+legacy serde, PolicyDecision status/reasons, optional attestation IDs, and updated schema exports + round-trip tests.
 - Added `PackKind` to `PackManifest`, optional `host.iac` capabilities for components, and the generic `DeploymentPlan` family shared across runner/deployer repositories.
 - Added the schema exporter binary, GitHub Pages workflow, and [`SCHEMAS.md`](SCHEMAS.md) so IDEs/CLIs can validate documents against canonical `$id`s.
 - Documented feature flags + MSRV (Rust 1.85), introduced the `schema`/`otel-keys` flags, and exposed the crate `VERSION` constant.

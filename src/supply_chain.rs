@@ -15,8 +15,9 @@ use serde_json::Value;
 use time::OffsetDateTime;
 
 use crate::{
-    ArtifactRef, AttestationRef, BuildRef, ComponentRef, RegistryRef, RepoRef, SbomRef, ScanRef,
-    SignatureRef, SigningKeyRef, StatementRef, StoreRef, TenantCtx,
+    ArtifactRef, AttestationId, AttestationRef, BranchRef, BuildLogRef, BuildRef, CommitRef,
+    ComponentRef, RegistryRef, RepoRef, SbomRef, ScanRef, SignatureRef, SigningKeyRef,
+    StatementRef, StoreRef, TenantCtx, VersionRef,
 };
 
 /// Hasher used for IndexMap fields to stay `no_std` friendly.
@@ -31,10 +32,22 @@ pub struct BuildPlan {
     pub build_id: BuildRef,
     /// Component being built.
     pub component: ComponentRef,
+    /// Optional source branch reference.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub branch: Option<BranchRef>,
     /// Source repository reference.
     pub source_repo: RepoRef,
     /// Commit identifier from the source repository.
     pub commit: String,
+    /// Optional structured commit reference.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub commit_ref: Option<CommitRef>,
     /// Language or ecosystem descriptor (for example `rust`, `nodejs`).
     pub language: String,
     /// Entrypoint or build target.
@@ -124,6 +137,12 @@ pub struct BuildStatus {
         serde(default, skip_serializing_if = "Option::is_none")
     )]
     pub logs_ref: Option<String>,
+    /// Optional structured build log references.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
+    pub log_refs: Vec<BuildLogRef>,
     /// Provider-specific metadata.
     #[cfg_attr(feature = "serde", serde(default))]
     pub metadata: Value,
@@ -156,6 +175,12 @@ pub struct ScanRequest {
     pub component: ComponentRef,
     /// Scan kind.
     pub kind: ScanKind,
+    /// Optional commit associated with the scan.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub commit_ref: Option<CommitRef>,
     /// Target artifact (when applicable).
     #[cfg_attr(
         feature = "serde",
@@ -299,6 +324,12 @@ pub enum PredicateType {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct AttestationStatement {
+    /// Optional generated attestation identifier.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub attestation_id: Option<AttestationId>,
     /// Attestation identifier.
     pub attestation: AttestationRef,
     /// Predicate type describing the attestation.
@@ -327,6 +358,12 @@ pub struct AttestationStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct MetadataRecord {
+    /// Optional version reference associated with the record.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub version: Option<VersionRef>,
     /// Optional namespace grouping related keys.
     #[cfg_attr(
         feature = "serde",

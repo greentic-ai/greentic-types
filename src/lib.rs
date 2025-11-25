@@ -110,7 +110,7 @@ pub use pack::{PackRef, Signature, SignatureAlgorithm};
 pub use pack_manifest::{PackComponentRef, PackFlowRef, PackKind, PackManifest};
 #[allow(deprecated)]
 pub use pack_spec::{PackSpec, ToolSpec};
-pub use policy::{AllowList, NetworkPolicy, PolicyDecision, Protocol};
+pub use policy::{AllowList, NetworkPolicy, PolicyDecision, PolicyDecisionStatus, Protocol};
 #[cfg(feature = "time")]
 pub use run::RunResult;
 pub use run::{NodeFailure, NodeStatus, NodeSummary, RunStatus, TranscriptOffset};
@@ -120,8 +120,8 @@ pub use state::{StateKey, StatePath};
 pub use store::{
     BundleSpec, CapabilityMap, Collection, ConnectionKind, DesiredState, DesiredStateExportSpec,
     DesiredSubscriptionEntry, Environment, LayoutSection, LayoutSectionKind, PackOrComponentRef,
-    PlanLimits, PriceModel, ProductOverride, StoreFront, StorePlan, StoreProduct, StoreProductKind,
-    Subscription, SubscriptionStatus, Theme, VersionStrategy,
+    PlanLimits, PriceModel, ProductOverride, RolloutState, RolloutStatus, StoreFront, StorePlan,
+    StoreProduct, StoreProductKind, Subscription, SubscriptionStatus, Theme, VersionStrategy,
 };
 pub use supply_chain::{
     AttestationStatement, BuildPlan, BuildStatus, BuildStatusKind, MetadataRecord, PredicateType,
@@ -137,7 +137,7 @@ pub use tenant::{Impersonation, TenantIdentity};
 
 #[cfg(feature = "schemars")]
 use alloc::borrow::Cow;
-use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
+use alloc::{borrow::ToOwned, collections::BTreeMap, format, string::String, vec::Vec};
 use core::fmt;
 use core::str::FromStr;
 #[cfg(feature = "schemars")]
@@ -243,12 +243,24 @@ pub mod ids {
     /// Secrets capability schema.
     pub const SECRETS_CAPS: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/secrets-caps.schema.json";
+    /// Branch reference schema.
+    pub const BRANCH_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/branch-ref.schema.json";
+    /// Commit reference schema.
+    pub const COMMIT_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/commit-ref.schema.json";
+    /// Webhook identifier schema.
+    pub const WEBHOOK_ID: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/webhook-id.schema.json";
     /// Repository reference schema.
     pub const REPO_REF: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/repo-ref.schema.json";
     /// Component reference schema.
     pub const COMPONENT_REF: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/component-ref.schema.json";
+    /// Version reference schema.
+    pub const VERSION_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/version-ref.schema.json";
     /// Build reference schema.
     pub const BUILD_REF: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/build-ref.schema.json";
@@ -258,15 +270,24 @@ pub mod ids {
     /// Attestation reference schema.
     pub const ATTESTATION_REF: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/attestation-ref.schema.json";
+    /// Attestation id schema.
+    pub const ATTESTATION_ID: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/attestation-id.schema.json";
     /// Policy reference schema.
     pub const POLICY_REF: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/policy-ref.schema.json";
+    /// Policy input reference schema.
+    pub const POLICY_INPUT_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/policy-input-ref.schema.json";
     /// Store reference schema.
     pub const STORE_REF: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/store-ref.schema.json";
     /// Registry reference schema.
     pub const REGISTRY_REF: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/registry-ref.schema.json";
+    /// OCI image reference schema.
+    pub const OCI_IMAGE_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/oci-image-ref.schema.json";
     /// Artifact reference schema.
     pub const ARTIFACT_REF: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/artifact-ref.schema.json";
@@ -282,6 +303,9 @@ pub mod ids {
     /// Statement reference schema.
     pub const STATEMENT_REF: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/statement-ref.schema.json";
+    /// Build log reference schema.
+    pub const BUILD_LOG_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/build-log-ref.schema.json";
     /// Metadata record reference schema.
     pub const METADATA_RECORD_REF: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/metadata-record-ref.schema.json";
@@ -318,6 +342,9 @@ pub mod ids {
     /// Version strategy schema.
     pub const VERSION_STRATEGY: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/version-strategy.schema.json";
+    /// Rollout status schema.
+    pub const ROLLOUT_STATUS: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/rollout-status.schema.json";
     /// Connection kind schema.
     pub const CONNECTION_KIND: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/connection-kind.schema.json";
@@ -517,6 +544,9 @@ id_newtype!(EnvId, "Environment identifier for a tenant context.");
 id_newtype!(TenantId, "Tenant identifier within an environment.");
 id_newtype!(TeamId, "Team identifier belonging to a tenant.");
 id_newtype!(UserId, "User identifier within a tenant.");
+id_newtype!(BranchRef, "Reference to a source control branch.");
+id_newtype!(CommitRef, "Reference to a source control commit.");
+id_newtype!(WebhookId, "Identifier referencing a registered webhook.");
 id_newtype!(PackId, "Globally unique pack identifier.");
 id_newtype!(
     ComponentId,
@@ -552,18 +582,28 @@ id_newtype!(
     ComponentRef,
     "Supply-chain component reference (distinct from pack ComponentId)."
 );
+id_newtype!(
+    VersionRef,
+    "Version reference for a component or metadata record."
+);
 id_newtype!(BuildRef, "Build reference within a supply chain.");
 id_newtype!(ScanRef, "Scan reference within a supply chain.");
 id_newtype!(
     AttestationRef,
     "Attestation reference within a supply chain."
 );
+id_newtype!(AttestationId, "Identifier referencing an attestation.");
 id_newtype!(PolicyRef, "Policy reference within a supply chain.");
+id_newtype!(
+    PolicyInputRef,
+    "Reference to a policy input payload for evaluation."
+);
 id_newtype!(StoreRef, "Content store reference within a supply chain.");
 id_newtype!(
     RegistryRef,
     "Registry reference for OCI or artifact storage."
 );
+id_newtype!(OciImageRef, "Reference to an OCI image for distribution.");
 id_newtype!(
     ArtifactRef,
     "Artifact reference within a build or scan result."
@@ -575,6 +615,10 @@ id_newtype!(
 id_newtype!(SigningKeyRef, "Reference to a signing key handle.");
 id_newtype!(SignatureRef, "Reference to a generated signature.");
 id_newtype!(StatementRef, "Reference to an attestation statement.");
+id_newtype!(
+    BuildLogRef,
+    "Reference to a build log output produced during execution."
+);
 id_newtype!(
     MetadataRecordRef,
     "Reference to a metadata record attached to artifacts or bundles."
@@ -605,6 +649,12 @@ pub struct TenantContext {
         serde(default, skip_serializing_if = "Option::is_none")
     )]
     pub session_id: Option<String>,
+    /// Optional attributes for routing and tracing.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "BTreeMap::is_empty")
+    )]
+    pub attributes: BTreeMap<String, String>,
 }
 
 impl TenantContext {
@@ -615,6 +665,7 @@ impl TenantContext {
             team_id: None,
             user_id: None,
             session_id: None,
+            attributes: BTreeMap::new(),
         }
     }
 }
@@ -626,6 +677,7 @@ impl From<&TenantCtx> for TenantContext {
             team_id: ctx.team_id.clone().or_else(|| ctx.team.clone()),
             user_id: ctx.user_id.clone().or_else(|| ctx.user.clone()),
             session_id: ctx.session_id.clone(),
+            attributes: ctx.attributes.clone(),
         }
     }
 }
@@ -966,6 +1018,12 @@ pub struct TenantCtx {
     /// Correlation identifier for linking related events.
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub correlation_id: Option<String>,
+    /// Free-form attributes for routing and tracing.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "BTreeMap::is_empty")
+    )]
+    pub attributes: BTreeMap<String, String>,
     /// Deadline when the invocation should finish.
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub deadline: Option<InvocationDeadline>,
@@ -997,6 +1055,7 @@ impl TenantCtx {
             provider_id: None,
             trace_id: None,
             correlation_id: None,
+            attributes: BTreeMap::new(),
             deadline: None,
             attempt: 0,
             idempotency_key: None,
@@ -1039,6 +1098,12 @@ impl TenantCtx {
     /// Updates the provider identifier.
     pub fn with_provider(mut self, provider: impl Into<String>) -> Self {
         self.provider_id = Some(provider.into());
+        self
+    }
+
+    /// Attaches or replaces the attributes map.
+    pub fn with_attributes(mut self, attributes: BTreeMap<String, String>) -> Self {
+        self.attributes = attributes;
         self
     }
 

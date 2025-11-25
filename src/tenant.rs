@@ -1,5 +1,6 @@
 //! Tenant-centric identity helpers.
 
+use alloc::collections::BTreeMap;
 use alloc::string::String;
 
 #[cfg(feature = "schemars")]
@@ -49,6 +50,12 @@ pub struct TenantIdentity {
         serde(default, skip_serializing_if = "Option::is_none")
     )]
     pub impersonation: Option<Impersonation>,
+    /// Free-form attributes propagated for routing and tracing.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "BTreeMap::is_empty")
+    )]
+    pub attributes: BTreeMap<String, String>,
 }
 
 impl TenantIdentity {
@@ -59,6 +66,7 @@ impl TenantIdentity {
             team_id: None,
             user_id: None,
             impersonation: None,
+            attributes: BTreeMap::new(),
         }
     }
 }
@@ -70,6 +78,7 @@ impl From<&TenantCtx> for TenantIdentity {
             team_id: ctx.team_id.clone().or_else(|| ctx.team.clone()),
             user_id: ctx.user_id.clone().or_else(|| ctx.user.clone()),
             impersonation: ctx.impersonation.clone(),
+            attributes: ctx.attributes.clone(),
         }
     }
 }
@@ -99,6 +108,7 @@ impl TenantCtx {
         self.user = identity.user_id.clone();
         self.user_id = identity.user_id;
         self.impersonation = identity.impersonation;
+        self.attributes = identity.attributes;
         self
     }
 }

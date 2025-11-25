@@ -9,18 +9,19 @@ use crate::run::RunResult;
 #[cfg(feature = "otel-keys")]
 use crate::telemetry::OtlpKeys;
 use crate::{
-    ArtifactRef, Attachment, AttestationRef, AttestationStatement, BuildPlan, BuildRef,
-    BuildStatus, BundleSpec, Capabilities, CapabilityMap, ChannelMessageEnvelope, Collection,
-    ComponentId, ComponentManifest, ComponentRef, ConnectionKind, DesiredState,
-    DesiredStateExportSpec, DesiredSubscriptionEntry, Environment, EnvironmentRef, EventEnvelope,
-    EventProviderDescriptor, Flow, FlowId, HashDigest, LayoutSection, Limits, MetadataRecord,
-    MetadataRecordRef, Node, NodeFailure, NodeId, NodeStatus, NodeSummary, PackId, PackManifest,
-    PackOrComponentRef, PlanLimits, PolicyRef, PriceModel, ProductOverride, RedactionPath,
-    RegistryRef, RepoContext, RepoRef, RunStatus, SbomRef, ScanRef, ScanRequest, ScanResult,
+    ArtifactRef, Attachment, AttestationId, AttestationRef, AttestationStatement, BranchRef,
+    BuildLogRef, BuildPlan, BuildRef, BuildStatus, BundleSpec, Capabilities, CapabilityMap,
+    ChannelMessageEnvelope, Collection, CommitRef, ComponentId, ComponentManifest, ComponentRef,
+    ConnectionKind, DesiredState, DesiredStateExportSpec, DesiredSubscriptionEntry, Environment,
+    EnvironmentRef, EventEnvelope, EventProviderDescriptor, Flow, FlowId, HashDigest,
+    LayoutSection, Limits, MetadataRecord, MetadataRecordRef, Node, NodeFailure, NodeId,
+    NodeStatus, NodeSummary, OciImageRef, PackId, PackManifest, PackOrComponentRef, PlanLimits,
+    PolicyInputRef, PolicyRef, PriceModel, ProductOverride, RedactionPath, RegistryRef,
+    RepoContext, RepoRef, RolloutStatus, RunStatus, SbomRef, ScanRef, ScanRequest, ScanResult,
     SecretsCaps, SemverReq, SignRequest, SignatureRef, SigningKeyRef, StatementRef, StoreContext,
     StoreFront, StorePlan, StoreProduct, StoreProductKind, StoreRef, Subscription,
     SubscriptionStatus, TelemetrySpec, TenantContext, Theme, ToolsCaps, TranscriptOffset,
-    VerifyRequest, VerifyResult, VersionStrategy, ids,
+    VerifyRequest, VerifyResult, VersionRef, VersionStrategy, WebhookId, ids,
 };
 use schemars::{JsonSchema, Schema, schema_for};
 
@@ -81,19 +82,27 @@ define_schema_fn!(run_status, RunStatus, ids::RUN_STATUS);
 define_schema_fn!(transcript_offset, TranscriptOffset, ids::TRANSCRIPT_OFFSET);
 define_schema_fn!(tools_caps, ToolsCaps, ids::TOOLS_CAPS);
 define_schema_fn!(secrets_caps, SecretsCaps, ids::SECRETS_CAPS);
+define_schema_fn!(branch_ref, BranchRef, ids::BRANCH_REF);
+define_schema_fn!(commit_ref, CommitRef, ids::COMMIT_REF);
+define_schema_fn!(webhook_id, WebhookId, ids::WEBHOOK_ID);
 define_schema_fn!(repo_ref, RepoRef, ids::REPO_REF);
 define_schema_fn!(component_ref, ComponentRef, ids::COMPONENT_REF);
+define_schema_fn!(version_ref, VersionRef, ids::VERSION_REF);
 define_schema_fn!(build_ref, BuildRef, ids::BUILD_REF);
 define_schema_fn!(scan_ref, ScanRef, ids::SCAN_REF);
 define_schema_fn!(attestation_ref, AttestationRef, ids::ATTESTATION_REF);
+define_schema_fn!(attestation_id, AttestationId, ids::ATTESTATION_ID);
 define_schema_fn!(policy_ref, PolicyRef, ids::POLICY_REF);
+define_schema_fn!(policy_input_ref, PolicyInputRef, ids::POLICY_INPUT_REF);
 define_schema_fn!(store_ref, StoreRef, ids::STORE_REF);
 define_schema_fn!(registry_ref, RegistryRef, ids::REGISTRY_REF);
+define_schema_fn!(oci_image_ref, OciImageRef, ids::OCI_IMAGE_REF);
 define_schema_fn!(artifact_ref, ArtifactRef, ids::ARTIFACT_REF);
 define_schema_fn!(sbom_ref, SbomRef, ids::SBOM_REF);
 define_schema_fn!(signing_key_ref, SigningKeyRef, ids::SIGNING_KEY_REF);
 define_schema_fn!(signature_ref, SignatureRef, ids::SIGNATURE_REF);
 define_schema_fn!(statement_ref, StatementRef, ids::STATEMENT_REF);
+define_schema_fn!(build_log_ref, BuildLogRef, ids::BUILD_LOG_REF);
 define_schema_fn!(
     metadata_record_ref,
     MetadataRecordRef,
@@ -156,6 +165,7 @@ define_schema_fn!(store_plan, StorePlan, ids::STORE_PLAN);
 define_schema_fn!(capability_map, CapabilityMap, ids::CAPABILITY_MAP);
 define_schema_fn!(subscription, Subscription, ids::SUBSCRIPTION);
 define_schema_fn!(environment, Environment, ids::ENVIRONMENT);
+define_schema_fn!(rollout_status, RolloutStatus, ids::ROLLOUT_STATUS);
 define_schema_fn!(theme, Theme, ids::THEME);
 define_schema_fn!(layout_section, LayoutSection, ids::LAYOUT_SECTION);
 define_schema_fn!(collection, Collection, ids::COLLECTION);
@@ -225,19 +235,27 @@ schema_entries_vec! {
     { transcript_offset, "transcript-offset", ids::TRANSCRIPT_OFFSET },
     { tools_caps, "tools-caps", ids::TOOLS_CAPS },
     { secrets_caps, "secrets-caps", ids::SECRETS_CAPS },
+    { branch_ref, "branch-ref", ids::BRANCH_REF },
+    { commit_ref, "commit-ref", ids::COMMIT_REF },
+    { webhook_id, "webhook-id", ids::WEBHOOK_ID },
     { repo_ref, "repo-ref", ids::REPO_REF },
     { component_ref, "component-ref", ids::COMPONENT_REF },
+    { version_ref, "version-ref", ids::VERSION_REF },
     { build_ref, "build-ref", ids::BUILD_REF },
     { scan_ref, "scan-ref", ids::SCAN_REF },
     { attestation_ref, "attestation-ref", ids::ATTESTATION_REF },
+    { attestation_id, "attestation-id", ids::ATTESTATION_ID },
     { policy_ref, "policy-ref", ids::POLICY_REF },
+    { policy_input_ref, "policy-input-ref", ids::POLICY_INPUT_REF },
     { store_ref, "store-ref", ids::STORE_REF },
     { registry_ref, "registry-ref", ids::REGISTRY_REF },
+    { oci_image_ref, "oci-image-ref", ids::OCI_IMAGE_REF },
     { artifact_ref, "artifact-ref", ids::ARTIFACT_REF },
     { sbom_ref, "sbom-ref", ids::SBOM_REF },
     { signing_key_ref, "signing-key-ref", ids::SIGNING_KEY_REF },
     { signature_ref, "signature-ref", ids::SIGNATURE_REF },
     { statement_ref, "statement-ref", ids::STATEMENT_REF },
+    { build_log_ref, "build-log-ref", ids::BUILD_LOG_REF },
     { metadata_record_ref, "metadata-record-ref", ids::METADATA_RECORD_REF },
     { environment_ref, "environment-ref", ids::ENVIRONMENT_REF },
     { distributor_ref, "distributor-ref", ids::DISTRIBUTOR_REF },
@@ -258,6 +276,7 @@ schema_entries_vec! {
     { collection_id, "collection-id", ids::COLLECTION_ID },
     { build_plan, "build-plan", ids::BUILD_PLAN },
     { build_status, "build-status", ids::BUILD_STATUS },
+    { rollout_status, "rollout-status", ids::ROLLOUT_STATUS },
     { scan_request, "scan-request", ids::SCAN_REQUEST },
     { scan_result, "scan-result", ids::SCAN_RESULT },
     { sign_request, "sign-request", ids::SIGN_REQUEST },

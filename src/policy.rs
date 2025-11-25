@@ -109,4 +109,28 @@ pub struct PolicyDecision {
         serde(default, skip_serializing_if = "Option::is_none")
     )]
     pub reason: Option<String>,
+    /// Status enum mirroring the allow flag.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub status: Option<PolicyDecisionStatus>,
+    /// Optional list of reasons.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
+    pub reasons: Vec<String>,
+}
+
+/// Status for a policy decision.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub enum PolicyDecisionStatus {
+    /// Request is allowed.
+    Allow,
+    /// Request is denied.
+    Deny,
 }

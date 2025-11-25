@@ -25,8 +25,10 @@ fn build_plan_and_status_roundtrip() {
     let mut plan = BuildPlan {
         build_id: "build-1".parse().unwrap(),
         component: "component.repo".parse().unwrap(),
+        branch: None,
         source_repo: "repo-main".parse().unwrap(),
         commit: "deadbeef".into(),
+        commit_ref: None,
         language: "rust".into(),
         entrypoint: "cargo build".into(),
         env: Default::default(),
@@ -44,6 +46,7 @@ fn build_plan_and_status_roundtrip() {
         finished_at_utc: Some(datetime!(2025-01-02 03:14:05 UTC)),
         artifacts: plan.outputs.clone(),
         logs_ref: Some("logs://build-1".into()),
+        log_refs: vec!["log-1".parse().unwrap()],
         metadata: json!({"duration_ms": 600000}),
     };
 
@@ -56,6 +59,7 @@ fn scan_request_and_result_roundtrip() {
         scan_id: "scan-1".parse().unwrap(),
         component: "component.repo".parse().unwrap(),
         kind: ScanKind::Dependencies,
+        commit_ref: None,
         artifact: Some("artifact-1".parse().unwrap()),
         metadata: json!({"severity_threshold": "high"}),
     };
@@ -108,6 +112,7 @@ fn signing_and_verification_roundtrip() {
 #[test]
 fn attestation_and_metadata_roundtrip() {
     let attestation = AttestationStatement {
+        attestation_id: Some("att-1".parse().unwrap()),
         attestation: "att-1".parse().unwrap(),
         predicate_type: PredicateType::Slsa,
         statement: "stmt-1".parse().unwrap(),
@@ -119,6 +124,7 @@ fn attestation_and_metadata_roundtrip() {
     assert_roundtrip(&attestation);
 
     let record = MetadataRecord {
+        version: Some("v1".parse().unwrap()),
         namespace: Some("scan.snyk".into()),
         key: "cvss_max".into(),
         value: json!(9.5),

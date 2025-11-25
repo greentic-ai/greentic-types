@@ -91,9 +91,7 @@ fn storefront_and_theme_roundtrip() {
 #[test]
 fn store_product_and_subscription_roundtrip() {
     let mut capabilities = CapabilityMap::default();
-    capabilities
-        .0
-        .insert("scan".into(), vec!["sast".into(), "deps".into()]);
+    capabilities.insert("scan".into(), vec!["sast".into(), "deps".into()]);
 
     let product = StoreProduct {
         id: "prod-1".parse().unwrap(),
@@ -107,7 +105,9 @@ fn store_product_and_subscription_roundtrip() {
         category: Some("security".into()),
         tags: vec!["scan".into(), "security".into()],
         capabilities,
-        version_strategy: VersionStrategy::Latest,
+        version_strategy: VersionStrategy::Fixed {
+            version: "1.0.0".into(),
+        },
         default_plan_id: Some("plan-free".parse().unwrap()),
         is_free: true,
         metadata: map(json!({"ui_icon": "shield"})),
@@ -205,10 +205,45 @@ fn environment_roundtrip() {
             "tenant-1".parse().unwrap(),
         ),
         distributor_ref: "dist-1".parse().unwrap(),
+        name: Some("Primary".into()),
         connection_kind: ConnectionKind::Online,
         labels: [("region".into(), "eu-west".into())].into_iter().collect(),
         metadata: map(json!({"notes": "primary"})),
     };
 
     assert_roundtrip(&env);
+}
+
+#[test]
+fn rollout_status_roundtrip() {
+    let status = greentic_types::RolloutStatus {
+        environment_ref: "env-1".parse().unwrap(),
+        desired_state_version: Some(2),
+        state: greentic_types::RolloutState::InProgress,
+        bundle_id: Some("bundle-1".parse().unwrap()),
+        message: Some("deploying".into()),
+        metadata: map(json!({"wave": 1})),
+    };
+
+    assert_roundtrip(&status);
+}
+
+#[test]
+fn version_strategy_compat() {
+    let latest_json = "\"latest\"";
+    let latest: VersionStrategy = serde_json::from_str(latest_json).expect("latest");
+    assert!(matches!(latest, VersionStrategy::Latest));
+
+    let pinned_json = r#"{"pinned":{"requirement":"^1.2"}}"#;
+    let pinned: VersionStrategy = serde_json::from_str(pinned_json).expect("pinned");
+    match pinned {
+        VersionStrategy::Pinned { requirement } => {
+            assert_eq!(requirement.to_string(), "^1.2")
+        }
+        other => panic!("unexpected variant {other:?}"),
+    }
+
+    let fixed_json = r#"{"kind":"fixed","version":"1.2.3"}"#;
+    let fixed: VersionStrategy = serde_json::from_str(fixed_json).expect("fixed");
+    assert!(matches!(fixed, VersionStrategy::Fixed { version } if version == "1.2.3"));
 }
