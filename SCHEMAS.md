@@ -36,6 +36,8 @@ The `bin/export-schemas.rs` helper (or `greentic_types::write_all_schemas`) mate
 | SecretsCaps | https://greentic-ai.github.io/greentic-types/schemas/v1/secrets-caps.schema.json |
 | BranchRef | https://greentic-ai.github.io/greentic-types/schemas/v1/branch-ref.schema.json |
 | CommitRef | https://greentic-ai.github.io/greentic-types/schemas/v1/commit-ref.schema.json |
+| GitProviderRef | https://greentic-ai.github.io/greentic-types/schemas/v1/git-provider-ref.schema.json |
+| ScannerRef | https://greentic-ai.github.io/greentic-types/schemas/v1/scanner-ref.schema.json |
 | WebhookId | https://greentic-ai.github.io/greentic-types/schemas/v1/webhook-id.schema.json |
 | RepoRef | https://greentic-ai.github.io/greentic-types/schemas/v1/repo-ref.schema.json |
 | ComponentRef | https://greentic-ai.github.io/greentic-types/schemas/v1/component-ref.schema.json |

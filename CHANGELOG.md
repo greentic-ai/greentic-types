@@ -20,6 +20,9 @@ All notable changes to this project will be documented in this file.
 - Exposed helper APIs like `Flow::ingress`, `Flow::validate_components`, and `ComponentManifest::select_profile` to keep validation/profile logic consistent across repos.
 - Added `MODELS.md` + README guidance describing the opaque-ID/capabilities-only design and marked `pack_spec` as legacy for migration planning.
 
+## [0.4.9]
+- Add provider ID newtypes for shared usage: `GitProviderRef` and `ScannerRef`, with schema exports and serde round-trip tests.
+
 ## [0.1.0] - 2025-10-23
 - Initial release with tenant identifiers, context, and invocation envelope
 - Added `NodeError`/`NodeResult` with retry and detail helpers

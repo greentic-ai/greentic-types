@@ -2,6 +2,7 @@
 
 //! Helper functions that expose JSON Schemas with stable `$id`s.
 
+#[allow(unused_imports)]
 use alloc::vec::Vec;
 
 #[cfg(feature = "time")]
@@ -14,14 +15,15 @@ use crate::{
     Capabilities, CapabilityMap, ChannelMessageEnvelope, Collection, CommitRef, ComponentId,
     ComponentManifest, ComponentRef, ConnectionKind, DesiredState, DesiredStateExportSpec,
     DesiredSubscriptionEntry, Environment, EnvironmentRef, EventEnvelope, EventProviderDescriptor,
-    Flow, FlowId, HashDigest, LayoutSection, Limits, MetadataRecord, MetadataRecordRef, Node,
-    NodeFailure, NodeId, NodeStatus, NodeSummary, OciImageRef, PackId, PackManifest,
-    PackOrComponentRef, PlanLimits, PolicyInputRef, PolicyRef, PriceModel, ProductOverride,
-    RedactionPath, RegistryRef, RepoContext, RepoRef, RolloutStatus, RunStatus, SbomRef, ScanRef,
-    ScanRequest, ScanResult, SecretsCaps, SemverReq, SignRequest, SignatureRef, SigningKeyRef,
-    StatementRef, StoreContext, StoreFront, StorePlan, StoreProduct, StoreProductKind, StoreRef,
-    Subscription, SubscriptionStatus, TelemetrySpec, TenantContext, Theme, ToolsCaps,
-    TranscriptOffset, VerifyRequest, VerifyResult, VersionRef, VersionStrategy, WebhookId, ids,
+    Flow, FlowId, GitProviderRef, HashDigest, LayoutSection, Limits, MetadataRecord,
+    MetadataRecordRef, Node, NodeFailure, NodeId, NodeStatus, NodeSummary, OciImageRef, PackId,
+    PackManifest, PackOrComponentRef, PlanLimits, PolicyInputRef, PolicyRef, PriceModel,
+    ProductOverride, RedactionPath, RegistryRef, RepoContext, RepoRef, RolloutStatus, RunStatus,
+    SbomRef, ScanRef, ScanRequest, ScanResult, ScannerRef, SecretsCaps, SemverReq, SignRequest,
+    SignatureRef, SigningKeyRef, StatementRef, StoreContext, StoreFront, StorePlan, StoreProduct,
+    StoreProductKind, StoreRef, Subscription, SubscriptionStatus, TelemetrySpec, TenantContext,
+    Theme, ToolsCaps, TranscriptOffset, VerifyRequest, VerifyResult, VersionRef, VersionStrategy,
+    WebhookId, ids,
 };
 use schemars::{JsonSchema, Schema, schema_for};
 
@@ -85,6 +87,8 @@ define_schema_fn!(tools_caps, ToolsCaps, ids::TOOLS_CAPS);
 define_schema_fn!(secrets_caps, SecretsCaps, ids::SECRETS_CAPS);
 define_schema_fn!(branch_ref, BranchRef, ids::BRANCH_REF);
 define_schema_fn!(commit_ref, CommitRef, ids::COMMIT_REF);
+define_schema_fn!(git_provider_ref, GitProviderRef, ids::GIT_PROVIDER_REF);
+define_schema_fn!(scanner_ref, ScannerRef, ids::SCANNER_REF);
 define_schema_fn!(webhook_id, WebhookId, ids::WEBHOOK_ID);
 define_schema_fn!(repo_ref, RepoRef, ids::REPO_REF);
 define_schema_fn!(component_ref, ComponentRef, ids::COMPONENT_REF);
@@ -197,6 +201,7 @@ define_schema_fn!(otlp_keys, OtlpKeys, ids::OTLP_KEYS);
 #[cfg(feature = "time")]
 define_schema_fn!(run_result, RunResult, ids::RUN_RESULT);
 
+#[allow(unused_macros)]
 macro_rules! schema_entries_vec {
     ( $( $(#[$meta:meta])* { $fn_name:ident, $slug:literal, $id_const:expr } ),+ $(,)? ) => {
         #[cfg(feature = "schema")]
@@ -242,6 +247,8 @@ schema_entries_vec! {
     { secrets_caps, "secrets-caps", ids::SECRETS_CAPS },
     { branch_ref, "branch-ref", ids::BRANCH_REF },
     { commit_ref, "commit-ref", ids::COMMIT_REF },
+    { git_provider_ref, "git-provider-ref", ids::GIT_PROVIDER_REF },
+    { scanner_ref, "scanner-ref", ids::SCANNER_REF },
     { webhook_id, "webhook-id", ids::WEBHOOK_ID },
     { repo_ref, "repo-ref", ids::REPO_REF },
     { component_ref, "component-ref", ids::COMPONENT_REF },

@@ -273,6 +273,12 @@ pub mod ids {
     /// Commit reference schema.
     pub const COMMIT_REF: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/commit-ref.schema.json";
+    /// Git provider reference schema.
+    pub const GIT_PROVIDER_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/git-provider-ref.schema.json";
+    /// Scanner provider reference schema.
+    pub const SCANNER_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/scanner-ref.schema.json";
     /// Webhook identifier schema.
     pub const WEBHOOK_ID: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/webhook-id.schema.json";
@@ -576,6 +582,11 @@ id_newtype!(TeamId, "Team identifier belonging to a tenant.");
 id_newtype!(UserId, "User identifier within a tenant.");
 id_newtype!(BranchRef, "Reference to a source control branch.");
 id_newtype!(CommitRef, "Reference to a source control commit.");
+id_newtype!(
+    GitProviderRef,
+    "Identifier referencing a source control provider."
+);
+id_newtype!(ScannerRef, "Identifier referencing a scanner provider.");
 id_newtype!(WebhookId, "Identifier referencing a registered webhook.");
 id_newtype!(PackId, "Globally unique pack identifier.");
 id_newtype!(

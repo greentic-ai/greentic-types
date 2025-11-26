@@ -1,12 +1,13 @@
 #![cfg(feature = "serde")]
 
 use greentic_types::{
-    AllowList, Capabilities, ComponentId, ErrorCode, FsCaps, GreenticError, HashDigest, HttpCaps,
-    Impersonation, InvocationDeadline, KvCaps, Limits, NetCaps, NetworkPolicy, NodeFailure, NodeId,
-    NodeStatus, NodeSummary, Outcome, PackId, PackRef, PolicyDecision, PolicyDecisionStatus,
-    RedactionPath, RunStatus, SecretsCaps, SemverReq, SessionCursor, SessionKey, Signature,
-    SignatureAlgorithm, SpanContext, StateKey, StatePath, TelemetrySpec, TenantContext, TenantCtx,
-    TenantIdentity, ToolsCaps, TranscriptOffset,
+    AllowList, Capabilities, ComponentId, ErrorCode, FsCaps, GitProviderRef, GreenticError,
+    HashDigest, HttpCaps, Impersonation, InvocationDeadline, KvCaps, Limits, NetCaps,
+    NetworkPolicy, NodeFailure, NodeId, NodeStatus, NodeSummary, Outcome, PackId, PackRef,
+    PolicyDecision, PolicyDecisionStatus, RedactionPath, RunStatus, ScannerRef, SecretsCaps,
+    SemverReq, SessionCursor, SessionKey, Signature, SignatureAlgorithm, SpanContext, StateKey,
+    StatePath, TelemetrySpec, TenantContext, TenantCtx, TenantIdentity, ToolsCaps,
+    TranscriptOffset,
 };
 #[cfg(feature = "time")]
 use greentic_types::{FlowId, RunResult};
@@ -194,6 +195,48 @@ fn hash_digest_roundtrip() {
     let digest = HashDigest::blake3("deadbeef").expect("valid hex");
     assert_roundtrip(&digest);
     assert!(HashDigest::blake3("not-hex").is_err());
+}
+
+#[test]
+fn provider_refs_roundtrip() {
+    let git = GitProviderRef::from_str("github").expect("valid git provider ref");
+    let scanner = ScannerRef::from_str("trivy").expect("valid scanner ref");
+
+    assert_roundtrip(&git);
+    assert_roundtrip(&scanner);
+
+    let git_json = serde_json::to_string(&git).expect("serialize");
+    let scanner_json = serde_json::to_string(&scanner).expect("serialize");
+    assert_eq!(git_json, "\"github\"");
+    assert_eq!(scanner_json, "\"trivy\"");
+    assert_eq!(
+        serde_json::from_str::<GitProviderRef>(&git_json).expect("deserialize"),
+        git
+    );
+    assert_eq!(
+        serde_json::from_str::<ScannerRef>(&scanner_json).expect("deserialize"),
+        scanner
+    );
+}
+
+#[cfg(all(feature = "schemars", feature = "std"))]
+#[test]
+fn provider_ref_schemas_use_canonical_ids() {
+    use greentic_types::{ids, schema};
+
+    let git_schema =
+        serde_json::to_value(schema::git_provider_ref()).expect("serialize git schema");
+    let scanner_schema =
+        serde_json::to_value(schema::scanner_ref()).expect("serialize scanner schema");
+
+    assert_eq!(
+        git_schema.get("$id").and_then(|id| id.as_str()),
+        Some(ids::GIT_PROVIDER_REF)
+    );
+    assert_eq!(
+        scanner_schema.get("$id").and_then(|id| id.as_str()),
+        Some(ids::SCANNER_REF)
+    );
 }
 
 #[test]
