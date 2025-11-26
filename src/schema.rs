@@ -34,6 +34,7 @@ fn schema_with_id<T: JsonSchema>(id: &str) -> Schema {
 }
 
 /// Internal descriptor describing a schema export.
+#[cfg(feature = "schema")]
 #[derive(Clone, Copy)]
 pub(crate) struct SchemaEntry {
     /// Output file name (including `.schema.json`).
@@ -198,6 +199,7 @@ define_schema_fn!(run_result, RunResult, ids::RUN_RESULT);
 
 macro_rules! schema_entries_vec {
     ( $( $(#[$meta:meta])* { $fn_name:ident, $slug:literal, $id_const:expr } ),+ $(,)? ) => {
+        #[cfg(feature = "schema")]
         pub(crate) fn entries() -> Vec<SchemaEntry> {
             let mut entries = Vec::new();
             $(
@@ -214,6 +216,7 @@ macro_rules! schema_entries_vec {
     };
 }
 
+#[cfg(feature = "schema")]
 schema_entries_vec! {
     { pack_id, "pack-id", ids::PACK_ID },
     { component_id, "component-id", ids::COMPONENT_ID },
