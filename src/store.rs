@@ -12,7 +12,7 @@ use serde_json::Value;
 
 use crate::{
     ArtifactRef, BundleId, CollectionId, ComponentRef, DistributorRef, EnvironmentRef,
-    MetadataRecordRef, PackId, SemverReq, StoreFrontId, StorePlanId, StoreProductId,
+    MetadataRecordRef, PackId, PackRef, SemverReq, StoreFrontId, StorePlanId, StoreProductId,
     SubscriptionId, TenantCtx,
 };
 
@@ -650,21 +650,25 @@ pub enum PackOrComponentRef {
     Pack(PackId),
 }
 
+/// Selector describing whether a component or pack should be deployed.
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub enum ArtifactSelector {
+    /// Component reference.
+    Component(ComponentRef),
+    /// Pack reference.
+    Pack(PackRef),
+}
+
 /// Desired subscription entry supplied to the distributor.
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct DesiredSubscriptionEntry {
-    /// Product identifier.
-    pub product_id: StoreProductId,
-    /// Plan identifier.
-    pub plan_id: StorePlanId,
-    /// Optional pack or component reference used for runtime resolution.
-    #[cfg_attr(
-        feature = "serde",
-        serde(default, skip_serializing_if = "Option::is_none")
-    )]
-    pub pack_or_component_ref: Option<PackOrComponentRef>,
+    /// Target artifact selection.
+    pub selector: ArtifactSelector,
     /// Version strategy to apply.
     pub version_strategy: VersionStrategy,
     /// Configuration overrides.
@@ -687,7 +691,7 @@ pub struct DesiredSubscriptionEntry {
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct DesiredState {
     /// Tenant context owning the desired state.
-    pub tenant_ctx: TenantCtx,
+    pub tenant: TenantCtx,
     /// Target environment reference.
     pub environment_ref: EnvironmentRef,
     /// Desired subscriptions.
@@ -695,7 +699,7 @@ pub struct DesiredState {
         feature = "serde",
         serde(default, skip_serializing_if = "Vec::is_empty")
     )]
-    pub subscriptions: Vec<DesiredSubscriptionEntry>,
+    pub entries: Vec<DesiredSubscriptionEntry>,
     /// Desired state version.
     pub version: u64,
     /// Additional metadata.
@@ -713,8 +717,6 @@ pub enum ConnectionKind {
     Online,
     /// Offline or air-gapped environment.
     Offline,
-    /// Hybrid environment with partial connectivity.
-    Hybrid,
 }
 
 /// Environment registry entry.
@@ -725,20 +727,16 @@ pub struct Environment {
     /// Environment identifier.
     pub id: EnvironmentRef,
     /// Tenant context owning the environment.
-    pub tenant_ctx: TenantCtx,
-    /// Optional human-readable name.
-    #[cfg_attr(
-        feature = "serde",
-        serde(default, skip_serializing_if = "Option::is_none")
-    )]
-    pub name: Option<String>,
+    pub tenant: TenantCtx,
+    /// Human-readable name.
+    pub name: String,
+    /// Labels for selection and grouping.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub labels: BTreeMap<String, String>,
     /// Distributor responsible for this environment.
     pub distributor_ref: DistributorRef,
     /// Connection kind.
     pub connection_kind: ConnectionKind,
-    /// Labels for selection and grouping.
-    #[cfg_attr(feature = "serde", serde(default))]
-    pub labels: BTreeMap<String, String>,
     /// Additional metadata.
     #[cfg_attr(feature = "serde", serde(default))]
     pub metadata: BTreeMap<String, Value>,
@@ -748,15 +746,15 @@ impl Environment {
     /// Constructs a new environment with the required identifiers.
     pub fn new(
         id: EnvironmentRef,
-        tenant_ctx: TenantCtx,
+        tenant: TenantCtx,
         distributor_ref: DistributorRef,
         connection_kind: ConnectionKind,
         name: impl Into<String>,
     ) -> Self {
         Self {
             id,
-            tenant_ctx,
-            name: Some(name.into()),
+            tenant,
+            name: name.into(),
             distributor_ref,
             connection_kind,
             labels: BTreeMap::new(),
@@ -825,7 +823,7 @@ pub struct BundleSpec {
     /// Bundle identifier.
     pub bundle_id: BundleId,
     /// Tenant context for the bundle.
-    pub tenant_ctx: TenantCtx,
+    pub tenant: TenantCtx,
     /// Target environment.
     pub environment_ref: EnvironmentRef,
     /// Version of the desired state used to construct the bundle.
@@ -853,7 +851,7 @@ pub struct BundleSpec {
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct DesiredStateExportSpec {
     /// Tenant context owning the desired state.
-    pub tenant_ctx: TenantCtx,
+    pub tenant: TenantCtx,
     /// Target environment.
     pub environment_ref: EnvironmentRef,
     /// Desired state version to export.

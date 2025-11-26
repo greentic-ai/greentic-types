@@ -1,10 +1,10 @@
 #![cfg(feature = "serde")]
 
 use greentic_types::{
-    BundleSpec, CapabilityMap, Collection, ConnectionKind, DesiredState, DesiredStateExportSpec,
-    DesiredSubscriptionEntry, Environment, LayoutSection, LayoutSectionKind, PackOrComponentRef,
-    PlanLimits, PriceModel, ProductOverride, StoreFront, StorePlan, StoreProduct, StoreProductKind,
-    Subscription, SubscriptionStatus, Theme, VersionStrategy,
+    ArtifactSelector, BundleSpec, CapabilityMap, Collection, ConnectionKind, DesiredState,
+    DesiredStateExportSpec, DesiredSubscriptionEntry, Environment, LayoutSection,
+    LayoutSectionKind, PlanLimits, PriceModel, ProductOverride, StoreFront, StorePlan,
+    StoreProduct, StoreProductKind, Subscription, SubscriptionStatus, Theme, VersionStrategy,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -150,11 +150,7 @@ fn store_product_and_subscription_roundtrip() {
 #[test]
 fn desired_state_and_bundle_roundtrip() {
     let desired_entry = DesiredSubscriptionEntry {
-        product_id: "prod-1".parse().unwrap(),
-        plan_id: "plan-free".parse().unwrap(),
-        pack_or_component_ref: Some(PackOrComponentRef::Component(
-            "component.scan".parse().unwrap(),
-        )),
+        selector: ArtifactSelector::Component("component.scan".parse().unwrap()),
         version_strategy: VersionStrategy::Latest,
         config_overrides: map(json!({"setting": true})),
         policy_tags: vec!["strict".into()],
@@ -162,19 +158,19 @@ fn desired_state_and_bundle_roundtrip() {
     };
 
     let desired_state = DesiredState {
-        tenant_ctx: greentic_types::TenantCtx::new(
+        tenant: greentic_types::TenantCtx::new(
             "prod".parse().unwrap(),
             "tenant-1".parse().unwrap(),
         ),
         environment_ref: "env-1".parse().unwrap(),
-        subscriptions: vec![desired_entry],
+        entries: vec![desired_entry],
         version: 1,
         metadata: map(json!({"channel": "stable"})),
     };
 
     let bundle = BundleSpec {
         bundle_id: "bundle-1".parse().unwrap(),
-        tenant_ctx: desired_state.tenant_ctx.clone(),
+        tenant: desired_state.tenant.clone(),
         environment_ref: desired_state.environment_ref.clone(),
         desired_state_version: desired_state.version,
         artifact_refs: vec!["artifact-1".parse().unwrap()],
@@ -183,7 +179,7 @@ fn desired_state_and_bundle_roundtrip() {
     };
 
     let export_spec = DesiredStateExportSpec {
-        tenant_ctx: desired_state.tenant_ctx.clone(),
+        tenant: desired_state.tenant.clone(),
         environment_ref: desired_state.environment_ref.clone(),
         desired_state_version: desired_state.version,
         include_artifacts: true,
@@ -200,14 +196,14 @@ fn desired_state_and_bundle_roundtrip() {
 fn environment_roundtrip() {
     let env = Environment {
         id: "env-1".parse().unwrap(),
-        tenant_ctx: greentic_types::TenantCtx::new(
+        tenant: greentic_types::TenantCtx::new(
             "prod".parse().unwrap(),
             "tenant-1".parse().unwrap(),
         ),
         distributor_ref: "dist-1".parse().unwrap(),
-        name: Some("Primary".into()),
+        name: "Primary".into(),
         connection_kind: ConnectionKind::Online,
-        labels: [("region".into(), "eu-west".into())].into_iter().collect(),
+        labels: BTreeMap::from([("region".into(), "eu-west".into())]),
         metadata: map(json!({"notes": "primary"})),
     };
 

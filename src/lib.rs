@@ -118,10 +118,11 @@ pub use session::canonical_session_key;
 pub use session::{SessionCursor, SessionData, SessionKey};
 pub use state::{StateKey, StatePath};
 pub use store::{
-    BundleSpec, CapabilityMap, Collection, ConnectionKind, DesiredState, DesiredStateExportSpec,
-    DesiredSubscriptionEntry, Environment, LayoutSection, LayoutSectionKind, PackOrComponentRef,
-    PlanLimits, PriceModel, ProductOverride, RolloutState, RolloutStatus, StoreFront, StorePlan,
-    StoreProduct, StoreProductKind, Subscription, SubscriptionStatus, Theme, VersionStrategy,
+    ArtifactSelector, BundleSpec, CapabilityMap, Collection, ConnectionKind, DesiredState,
+    DesiredStateExportSpec, DesiredSubscriptionEntry, Environment, LayoutSection,
+    LayoutSectionKind, PackOrComponentRef, PlanLimits, PriceModel, ProductOverride, RolloutState,
+    RolloutStatus, StoreFront, StorePlan, StoreProduct, StoreProductKind, Subscription,
+    SubscriptionStatus, Theme, VersionStrategy,
 };
 pub use supply_chain::{
     AttestationStatement, BuildPlan, BuildStatus, BuildStatusKind, MetadataRecord, PredicateType,
@@ -170,6 +171,29 @@ pub(crate) fn validate_identifier(value: &str, label: &str) -> GResult<()> {
         return Err(GreenticError::new(
             ErrorCode::InvalidInput,
             format!("{label} must contain only ASCII letters, digits, '.', '-', or '_'"),
+        ));
+    }
+    Ok(())
+}
+
+/// Validates API key references that may include URI-like prefixes.
+pub(crate) fn validate_api_key_ref(value: &str) -> GResult<()> {
+    if value.trim().is_empty() {
+        return Err(GreenticError::new(
+            ErrorCode::InvalidInput,
+            "ApiKeyRef must not be empty",
+        ));
+    }
+    if value.chars().any(char::is_whitespace) {
+        return Err(GreenticError::new(
+            ErrorCode::InvalidInput,
+            "ApiKeyRef must not contain whitespace",
+        ));
+    }
+    if !value.is_ascii() {
+        return Err(GreenticError::new(
+            ErrorCode::InvalidInput,
+            "ApiKeyRef must contain only ASCII characters",
         ));
     }
     Ok(())
@@ -309,6 +333,9 @@ pub mod ids {
     /// Metadata record reference schema.
     pub const METADATA_RECORD_REF: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/metadata-record-ref.schema.json";
+    /// API key reference schema.
+    pub const API_KEY_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/api-key-ref.schema.json";
     /// Environment reference schema.
     pub const ENVIRONMENT_REF: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/environment-ref.schema.json";
@@ -333,6 +360,9 @@ pub mod ids {
     /// Collection identifier schema.
     pub const COLLECTION_ID: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/collection-id.schema.json";
+    /// Artifact selector schema.
+    pub const ARTIFACT_SELECTOR: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/artifact-selector.schema.json";
     /// Capability map schema.
     pub const CAPABILITY_MAP: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/capability-map.schema.json";
@@ -623,6 +653,68 @@ id_newtype!(
     MetadataRecordRef,
     "Reference to a metadata record attached to artifacts or bundles."
 );
+
+/// API key reference used across secrets providers without exposing key material.
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "serde", serde(try_from = "String", into = "String"))]
+pub struct ApiKeyRef(pub String);
+
+impl ApiKeyRef {
+    /// Returns the reference as a string slice.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    /// Validates and constructs the reference from the provided value.
+    pub fn new(value: impl AsRef<str>) -> GResult<Self> {
+        value.as_ref().parse()
+    }
+}
+
+impl fmt::Display for ApiKeyRef {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl FromStr for ApiKeyRef {
+    type Err = GreenticError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        validate_api_key_ref(value)?;
+        Ok(Self(value.to_owned()))
+    }
+}
+
+impl TryFrom<String> for ApiKeyRef {
+    type Error = GreenticError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        ApiKeyRef::from_str(&value)
+    }
+}
+
+impl TryFrom<&str> for ApiKeyRef {
+    type Error = GreenticError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        ApiKeyRef::from_str(value)
+    }
+}
+
+impl From<ApiKeyRef> for String {
+    fn from(value: ApiKeyRef) -> Self {
+        value.0
+    }
+}
+
+impl AsRef<str> for ApiKeyRef {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
 
 /// Compact tenant summary propagated to developers and tooling.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

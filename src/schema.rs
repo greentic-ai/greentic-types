@@ -9,19 +9,19 @@ use crate::run::RunResult;
 #[cfg(feature = "otel-keys")]
 use crate::telemetry::OtlpKeys;
 use crate::{
-    ArtifactRef, Attachment, AttestationId, AttestationRef, AttestationStatement, BranchRef,
-    BuildLogRef, BuildPlan, BuildRef, BuildStatus, BundleSpec, Capabilities, CapabilityMap,
-    ChannelMessageEnvelope, Collection, CommitRef, ComponentId, ComponentManifest, ComponentRef,
-    ConnectionKind, DesiredState, DesiredStateExportSpec, DesiredSubscriptionEntry, Environment,
-    EnvironmentRef, EventEnvelope, EventProviderDescriptor, Flow, FlowId, HashDigest,
-    LayoutSection, Limits, MetadataRecord, MetadataRecordRef, Node, NodeFailure, NodeId,
-    NodeStatus, NodeSummary, OciImageRef, PackId, PackManifest, PackOrComponentRef, PlanLimits,
-    PolicyInputRef, PolicyRef, PriceModel, ProductOverride, RedactionPath, RegistryRef,
-    RepoContext, RepoRef, RolloutStatus, RunStatus, SbomRef, ScanRef, ScanRequest, ScanResult,
-    SecretsCaps, SemverReq, SignRequest, SignatureRef, SigningKeyRef, StatementRef, StoreContext,
-    StoreFront, StorePlan, StoreProduct, StoreProductKind, StoreRef, Subscription,
-    SubscriptionStatus, TelemetrySpec, TenantContext, Theme, ToolsCaps, TranscriptOffset,
-    VerifyRequest, VerifyResult, VersionRef, VersionStrategy, WebhookId, ids,
+    ApiKeyRef, ArtifactRef, ArtifactSelector, Attachment, AttestationId, AttestationRef,
+    AttestationStatement, BranchRef, BuildLogRef, BuildPlan, BuildRef, BuildStatus, BundleSpec,
+    Capabilities, CapabilityMap, ChannelMessageEnvelope, Collection, CommitRef, ComponentId,
+    ComponentManifest, ComponentRef, ConnectionKind, DesiredState, DesiredStateExportSpec,
+    DesiredSubscriptionEntry, Environment, EnvironmentRef, EventEnvelope, EventProviderDescriptor,
+    Flow, FlowId, HashDigest, LayoutSection, Limits, MetadataRecord, MetadataRecordRef, Node,
+    NodeFailure, NodeId, NodeStatus, NodeSummary, OciImageRef, PackId, PackManifest,
+    PackOrComponentRef, PlanLimits, PolicyInputRef, PolicyRef, PriceModel, ProductOverride,
+    RedactionPath, RegistryRef, RepoContext, RepoRef, RolloutStatus, RunStatus, SbomRef, ScanRef,
+    ScanRequest, ScanResult, SecretsCaps, SemverReq, SignRequest, SignatureRef, SigningKeyRef,
+    StatementRef, StoreContext, StoreFront, StorePlan, StoreProduct, StoreProductKind, StoreRef,
+    Subscription, SubscriptionStatus, TelemetrySpec, TenantContext, Theme, ToolsCaps,
+    TranscriptOffset, VerifyRequest, VerifyResult, VersionRef, VersionStrategy, WebhookId, ids,
 };
 use schemars::{JsonSchema, Schema, schema_for};
 
@@ -108,6 +108,7 @@ define_schema_fn!(
     MetadataRecordRef,
     ids::METADATA_RECORD_REF
 );
+define_schema_fn!(api_key_ref, ApiKeyRef, ids::API_KEY_REF);
 define_schema_fn!(environment_ref, EnvironmentRef, ids::ENVIRONMENT_REF);
 define_schema_fn!(distributor_ref, crate::DistributorRef, ids::DISTRIBUTOR_REF);
 define_schema_fn!(storefront_id, crate::StoreFrontId, ids::STOREFRONT_ID);
@@ -159,6 +160,7 @@ define_schema_fn!(
     DesiredSubscriptionEntry,
     ids::DESIRED_SUBSCRIPTION_ENTRY
 );
+define_schema_fn!(artifact_selector, ArtifactSelector, ids::ARTIFACT_SELECTOR);
 define_schema_fn!(storefront, StoreFront, ids::STOREFRONT);
 define_schema_fn!(store_product, StoreProduct, ids::STORE_PRODUCT);
 define_schema_fn!(store_plan, StorePlan, ids::STORE_PLAN);
@@ -257,15 +259,7 @@ schema_entries_vec! {
     { statement_ref, "statement-ref", ids::STATEMENT_REF },
     { build_log_ref, "build-log-ref", ids::BUILD_LOG_REF },
     { metadata_record_ref, "metadata-record-ref", ids::METADATA_RECORD_REF },
-    { environment_ref, "environment-ref", ids::ENVIRONMENT_REF },
-    { distributor_ref, "distributor-ref", ids::DISTRIBUTOR_REF },
-    { storefront_id, "storefront-id", ids::STOREFRONT_ID },
-    { store_product_id, "store-product-id", ids::STORE_PRODUCT_ID },
-    { store_plan_id, "store-plan-id", ids::STORE_PLAN_ID },
-    { subscription_id, "subscription-id", ids::SUBSCRIPTION_ID },
-    { bundle_id, "bundle-id", ids::BUNDLE_ID },
-    { collection_id, "collection-id", ids::COLLECTION_ID },
-    { metadata_record_ref, "metadata-record-ref", ids::METADATA_RECORD_REF },
+    { api_key_ref, "api-key-ref", ids::API_KEY_REF },
     { environment_ref, "environment-ref", ids::ENVIRONMENT_REF },
     { distributor_ref, "distributor-ref", ids::DISTRIBUTOR_REF },
     { storefront_id, "storefront-id", ids::STOREFRONT_ID },
@@ -294,6 +288,7 @@ schema_entries_vec! {
     { desired_state_export_spec, "desired-state-export", ids::DESIRED_STATE_EXPORT },
     { desired_state, "desired-state", ids::DESIRED_STATE },
     { desired_subscription_entry, "desired-subscription-entry", ids::DESIRED_SUBSCRIPTION_ENTRY },
+    { artifact_selector, "artifact-selector", ids::ARTIFACT_SELECTOR },
     { storefront, "storefront", ids::STOREFRONT },
     { store_product, "store-product", ids::STORE_PRODUCT },
     { store_plan, "store-plan", ids::STORE_PLAN },

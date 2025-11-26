@@ -55,6 +55,7 @@ The `bin/export-schemas.rs` helper (or `greentic_types::write_all_schemas`) mate
 | SignatureRef | https://greentic-ai.github.io/greentic-types/schemas/v1/signature-ref.schema.json |
 | StatementRef | https://greentic-ai.github.io/greentic-types/schemas/v1/statement-ref.schema.json |
 | BuildLogRef | https://greentic-ai.github.io/greentic-types/schemas/v1/build-log-ref.schema.json |
+| ApiKeyRef | https://greentic-ai.github.io/greentic-types/schemas/v1/api-key-ref.schema.json |
 | BuildPlan | https://greentic-ai.github.io/greentic-types/schemas/v1/build-plan.schema.json |
 | BuildStatus | https://greentic-ai.github.io/greentic-types/schemas/v1/build-status.schema.json |
 | ScanRequest | https://greentic-ai.github.io/greentic-types/schemas/v1/scan-request.schema.json |
@@ -70,6 +71,7 @@ The `bin/export-schemas.rs` helper (or `greentic_types::write_all_schemas`) mate
 | DesiredStateExportSpec | https://greentic-ai.github.io/greentic-types/schemas/v1/desired-state-export.schema.json |
 | DesiredState | https://greentic-ai.github.io/greentic-types/schemas/v1/desired-state.schema.json |
 | DesiredSubscriptionEntry | https://greentic-ai.github.io/greentic-types/schemas/v1/desired-subscription-entry.schema.json |
+| ArtifactSelector | https://greentic-ai.github.io/greentic-types/schemas/v1/artifact-selector.schema.json |
 | StoreFront | https://greentic-ai.github.io/greentic-types/schemas/v1/storefront.schema.json |
 | StoreProduct | https://greentic-ai.github.io/greentic-types/schemas/v1/store-product.schema.json |
 | StorePlan | https://greentic-ai.github.io/greentic-types/schemas/v1/store-plan.schema.json |
