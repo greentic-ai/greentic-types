@@ -79,6 +79,7 @@ pub mod session;
 pub mod state;
 pub mod telemetry;
 pub mod tenant;
+pub mod tenant_config;
 
 pub use bindings::hints::{
     BindingsHints, EnvHints, McpHints, McpServer, NetworkHints, SecretsHints,
@@ -135,6 +136,12 @@ pub use telemetry::SpanContext;
 #[cfg(feature = "telemetry-autoinit")]
 pub use telemetry::TelemetryCtx;
 pub use tenant::{Impersonation, TenantIdentity};
+pub use tenant_config::{
+    DefaultPipeline, DidContext, DidService, DistributorTarget, EnabledPacks,
+    IdentityProviderOption, RepoAuth, RepoConfigFeatures, RepoSkin, RepoSkinLayout, RepoSkinLinks,
+    RepoSkinTheme, RepoTenantConfig, RepoWorkerPanel, StoreTarget, TenantDidDocument,
+    VerificationMethod,
+};
 
 #[cfg(feature = "schemars")]
 use alloc::borrow::Cow;
@@ -228,6 +235,18 @@ pub mod ids {
     /// Capabilities schema.
     pub const CAPABILITIES: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/capabilities.schema.json";
+    /// RepoSkin (skin.json) schema.
+    pub const REPO_SKIN: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/repo-skin.schema.json";
+    /// RepoAuth (auth.json) schema.
+    pub const REPO_AUTH: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/repo-auth.schema.json";
+    /// RepoTenantConfig (config.json) schema.
+    pub const REPO_TENANT_CONFIG: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/repo-tenant-config.schema.json";
+    /// Tenant DID document (did.json) schema.
+    pub const TENANT_DID_DOCUMENT: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/tenant-did-document.schema.json";
     /// Flow schema.
     pub const FLOW: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/flow.schema.json";

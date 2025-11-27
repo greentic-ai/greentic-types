@@ -106,14 +106,24 @@ fn policy_roundtrip() {
     };
 
     let decision = PolicyDecision {
-        allow: true,
-        reason: Some("matched allow list".into()),
-        status: Some(PolicyDecisionStatus::Allow),
+        status: PolicyDecisionStatus::Allow,
         reasons: vec!["matched allow list".into()],
+        allow: Some(true),
+        reason: Some("matched allow list".into()),
     };
 
     assert_roundtrip(&policy);
     assert_roundtrip(&decision);
+
+    // Backward compatibility: legacy payload without status/reasons should still deserialize.
+    let legacy = r#"{
+        "allow": false,
+        "reason": "denied by policy"
+    }"#;
+    let decoded: PolicyDecision = serde_json::from_str(legacy).expect("legacy decode");
+    assert_eq!(decoded.status, PolicyDecisionStatus::Deny);
+    assert_eq!(decoded.reason.as_deref(), Some("denied by policy"));
+    assert_eq!(decoded.reasons, vec!["denied by policy".to_string()]);
 }
 
 #[test]

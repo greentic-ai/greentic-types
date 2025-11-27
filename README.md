@@ -48,6 +48,9 @@ assert_eq!(cursor.node_pointer, "node.entry");
 assert!(!allow_policy.is_empty());
 ```
 
+### Tenant UI/discovery documents
+`tenant_config` holds serde-ready shapes for the public tenant documents: `RepoSkin` (`skin.json`), `RepoAuth` (`auth.json`), `RepoTenantConfig` (`config.json` with free-form tab/handler keys), and `TenantDidDocument` (`did.json` with flexible `@context`). These stay UI-neutral (strings for tabs/slots) so UI/server crates can evolve without bumping greentic-types.
+
 ### Sessions & telemetry
 ```rust
 use greentic_types::{SessionKey, SpanContext};

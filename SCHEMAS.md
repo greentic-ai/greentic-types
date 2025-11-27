@@ -21,6 +21,10 @@ The `bin/export-schemas.rs` helper (or `greentic_types::write_all_schemas`) mate
 | SemverReq | https://greentic-ai.github.io/greentic-types/schemas/v1/semver-req.schema.json |
 | RedactionPath | https://greentic-ai.github.io/greentic-types/schemas/v1/redaction-path.schema.json |
 | Capabilities | https://greentic-ai.github.io/greentic-types/schemas/v1/capabilities.schema.json |
+| RepoSkin | https://greentic-ai.github.io/greentic-types/schemas/v1/repo-skin.schema.json |
+| RepoAuth | https://greentic-ai.github.io/greentic-types/schemas/v1/repo-auth.schema.json |
+| RepoTenantConfig | https://greentic-ai.github.io/greentic-types/schemas/v1/repo-tenant-config.schema.json |
+| TenantDidDocument | https://greentic-ai.github.io/greentic-types/schemas/v1/tenant-did-document.schema.json |
 | Flow | https://greentic-ai.github.io/greentic-types/schemas/v1/flow.schema.json |
 | Node | https://greentic-ai.github.io/greentic-types/schemas/v1/node.schema.json |
 | ComponentManifest | https://greentic-ai.github.io/greentic-types/schemas/v1/component-manifest.schema.json |

@@ -18,12 +18,12 @@ use crate::{
     Flow, FlowId, GitProviderRef, HashDigest, LayoutSection, Limits, MetadataRecord,
     MetadataRecordRef, Node, NodeFailure, NodeId, NodeStatus, NodeSummary, OciImageRef, PackId,
     PackManifest, PackOrComponentRef, PlanLimits, PolicyInputRef, PolicyRef, PriceModel,
-    ProductOverride, RedactionPath, RegistryRef, RepoContext, RepoRef, RolloutStatus, RunStatus,
-    SbomRef, ScanRef, ScanRequest, ScanResult, ScannerRef, SecretsCaps, SemverReq, SignRequest,
-    SignatureRef, SigningKeyRef, StatementRef, StoreContext, StoreFront, StorePlan, StoreProduct,
-    StoreProductKind, StoreRef, Subscription, SubscriptionStatus, TelemetrySpec, TenantContext,
-    Theme, ToolsCaps, TranscriptOffset, VerifyRequest, VerifyResult, VersionRef, VersionStrategy,
-    WebhookId, ids,
+    ProductOverride, RedactionPath, RegistryRef, RepoAuth, RepoContext, RepoRef, RepoSkin,
+    RepoTenantConfig, RolloutStatus, RunStatus, SbomRef, ScanRef, ScanRequest, ScanResult,
+    ScannerRef, SecretsCaps, SemverReq, SignRequest, SignatureRef, SigningKeyRef, StatementRef,
+    StoreContext, StoreFront, StorePlan, StoreProduct, StoreProductKind, StoreRef, Subscription,
+    SubscriptionStatus, TelemetrySpec, TenantContext, TenantDidDocument, Theme, ToolsCaps,
+    TranscriptOffset, VerifyRequest, VerifyResult, VersionRef, VersionStrategy, WebhookId, ids,
 };
 use schemars::{JsonSchema, Schema, schema_for};
 
@@ -76,6 +76,18 @@ define_schema_fn!(hash_digest, HashDigest, ids::HASH_DIGEST);
 define_schema_fn!(semver_req, SemverReq, ids::SEMVER_REQ);
 define_schema_fn!(redaction_path, RedactionPath, ids::REDACTION_PATH);
 define_schema_fn!(capabilities, Capabilities, ids::CAPABILITIES);
+define_schema_fn!(repo_skin, RepoSkin, ids::REPO_SKIN);
+define_schema_fn!(repo_auth, RepoAuth, ids::REPO_AUTH);
+define_schema_fn!(
+    repo_tenant_config,
+    RepoTenantConfig,
+    ids::REPO_TENANT_CONFIG
+);
+define_schema_fn!(
+    tenant_did_document,
+    TenantDidDocument,
+    ids::TENANT_DID_DOCUMENT
+);
 define_schema_fn!(limits, Limits, ids::LIMITS);
 define_schema_fn!(telemetry_spec, TelemetrySpec, ids::TELEMETRY_SPEC);
 define_schema_fn!(node_summary, NodeSummary, ids::NODE_SUMMARY);
@@ -232,6 +244,10 @@ schema_entries_vec! {
     { semver_req, "semver-req", ids::SEMVER_REQ },
     { redaction_path, "redaction-path", ids::REDACTION_PATH },
     { capabilities, "capabilities", ids::CAPABILITIES },
+    { repo_skin, "repo-skin", ids::REPO_SKIN },
+    { repo_auth, "repo-auth", ids::REPO_AUTH },
+    { repo_tenant_config, "repo-tenant-config", ids::REPO_TENANT_CONFIG },
+    { tenant_did_document, "tenant-did-document", ids::TENANT_DID_DOCUMENT },
     { flow, "flow", ids::FLOW },
     { node, "node", ids::NODE },
     { component_manifest, "component-manifest", ids::COMPONENT_MANIFEST },
