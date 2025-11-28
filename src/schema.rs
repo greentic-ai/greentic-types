@@ -23,7 +23,8 @@ use crate::{
     ScannerRef, SecretsCaps, SemverReq, SignRequest, SignatureRef, SigningKeyRef, StatementRef,
     StoreContext, StoreFront, StorePlan, StoreProduct, StoreProductKind, StoreRef, Subscription,
     SubscriptionStatus, TelemetrySpec, TenantContext, TenantDidDocument, Theme, ToolsCaps,
-    TranscriptOffset, VerifyRequest, VerifyResult, VersionRef, VersionStrategy, WebhookId, ids,
+    TranscriptOffset, VerifyRequest, VerifyResult, VersionRef, VersionStrategy, WebhookId,
+    WorkerMessage, WorkerRequest, WorkerResponse, ids,
 };
 use schemars::{JsonSchema, Schema, schema_for};
 
@@ -165,6 +166,9 @@ define_schema_fn!(
     ids::CHANNEL_MESSAGE_ENVELOPE
 );
 define_schema_fn!(attachment, Attachment, ids::ATTACHMENT);
+define_schema_fn!(worker_request, WorkerRequest, ids::WORKER_REQUEST);
+define_schema_fn!(worker_message, WorkerMessage, ids::WORKER_MESSAGE);
+define_schema_fn!(worker_response, WorkerResponse, ids::WORKER_RESPONSE);
 define_schema_fn!(bundle_spec, BundleSpec, ids::BUNDLE);
 define_schema_fn!(
     desired_state_export_spec,
@@ -310,6 +314,9 @@ schema_entries_vec! {
     { event_provider_descriptor, "event-provider-descriptor", ids::EVENT_PROVIDER_DESCRIPTOR },
     { channel_message_envelope, "channel-message-envelope", ids::CHANNEL_MESSAGE_ENVELOPE },
     { attachment, "attachment", ids::ATTACHMENT },
+    { worker_request, "worker-request", ids::WORKER_REQUEST },
+    { worker_message, "worker-message", ids::WORKER_MESSAGE },
+    { worker_response, "worker-response", ids::WORKER_RESPONSE },
     { bundle_spec, "bundle", ids::BUNDLE },
     { desired_state_export_spec, "desired-state-export", ids::DESIRED_STATE_EXPORT },
     { desired_state, "desired-state", ids::DESIRED_STATE },

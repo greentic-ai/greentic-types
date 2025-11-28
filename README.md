@@ -98,6 +98,10 @@ let outcome = match validate("payload") {
 - `cargo run --bin export-schemas --all-features` runs the helper binary and writes JSON Schemas into `dist/schemas/v1/`.
 - Published schemas (and canonical URLs) live in [SCHEMAS.md](SCHEMAS.md); CI pushes them to GitHub Pages automatically.
 
+### Worker envelope
+- `WorkerRequest`, `WorkerResponse`, and `WorkerMessage` are the shared worker envelope models, mirroring the `greentic:worker@1.0.0` WIT package.
+- They are domain-agnostic (no repo/store/channel concepts) and are shared between runner and messaging. See [docs/worker.md](docs/worker.md) for field breakdowns and usage notes.
+
 ## Telemetry (auto-init)
 - Enable with `features = ["telemetry-autoinit"]` to bundle the OTLP stack and entry-point macro.
 - `#[greentic_types::telemetry::main(...)]` wraps `tokio::main`, installs OTLP once, and forwards to your async main.

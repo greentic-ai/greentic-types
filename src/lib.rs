@@ -66,6 +66,7 @@ pub mod pack_manifest;
 pub mod pack_spec;
 pub mod store;
 pub mod supply_chain;
+pub mod worker;
 
 pub mod context;
 pub mod error;
@@ -142,6 +143,7 @@ pub use tenant_config::{
     RepoSkinTheme, RepoTenantConfig, RepoWorkerPanel, StoreTarget, TenantDidDocument,
     VerificationMethod,
 };
+pub use worker::{WorkerMessage, WorkerRequest, WorkerResponse};
 
 #[cfg(feature = "schemars")]
 use alloc::borrow::Cow;
@@ -496,6 +498,15 @@ pub mod ids {
     /// Attachment schema.
     pub const ATTACHMENT: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/attachment.schema.json";
+    /// Worker request envelope schema.
+    pub const WORKER_REQUEST: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/worker-request.schema.json";
+    /// Worker message schema.
+    pub const WORKER_MESSAGE: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/worker-message.schema.json";
+    /// Worker response envelope schema.
+    pub const WORKER_RESPONSE: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/worker-response.schema.json";
     /// OTLP attribute key schema.
     pub const OTLP_KEYS: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/otlp-keys.schema.json";
