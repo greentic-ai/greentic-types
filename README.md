@@ -212,8 +212,6 @@ CI (see `.github/workflows/publish.yml`) enforces the same gates on push/PR. Leg
 - After tagging (or even when no tags are created), the publish workflow attempts to publish all changed crates via `katyo/publish-crates@v2`.
 - Publishing is idempotent; attempting to release the same version again succeeds without errors.
 
-## Legacy `pack_spec`
-Legacy pack manifests remain available via `greentic_types::pack_spec::{PackSpec, ToolSpec}` while older MCP-style packs are migrated. New packs should rely on `PackManifest` + `.ygtc` flows instead; once all callers move over we will fully remove `pack_spec`.
 
 ## License
 MIT License. See [LICENSE](LICENSE).

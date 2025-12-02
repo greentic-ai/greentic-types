@@ -58,12 +58,12 @@ pub mod bindings;
 pub mod capabilities;
 pub mod component;
 pub mod deployment;
+pub mod distributor;
 pub mod events;
 pub mod events_provider;
 pub mod flow;
 pub mod messaging;
 pub mod pack_manifest;
-pub mod pack_spec;
 pub mod store;
 pub mod supply_chain;
 pub mod worker;
@@ -100,6 +100,10 @@ pub use deployment::{
     ChannelPlan, DeploymentPlan, MessagingPlan, MessagingSubjectPlan, OAuthPlan, RunnerPlan,
     SecretPlan, TelemetryPlan,
 };
+pub use distributor::{
+    ArtifactLocation, CacheInfo, ComponentDigest, ComponentStatus, DistributorEnvironmentId,
+    ResolveComponentRequest, ResolveComponentResponse, SignatureSummary,
+};
 pub use error::{ErrorCode, GResult, GreenticError};
 pub use events::{EventEnvelope, EventId, EventMetadata};
 pub use events_provider::{
@@ -110,8 +114,6 @@ pub use messaging::{Attachment, ChannelMessageEnvelope, MessageMetadata};
 pub use outcome::Outcome;
 pub use pack::{PackRef, Signature, SignatureAlgorithm};
 pub use pack_manifest::{PackComponentRef, PackFlowRef, PackKind, PackManifest};
-#[allow(deprecated)]
-pub use pack_spec::{PackSpec, ToolSpec};
 pub use policy::{AllowList, NetworkPolicy, PolicyDecision, PolicyDecisionStatus, Protocol};
 #[cfg(feature = "time")]
 pub use run::RunResult;

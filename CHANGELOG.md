@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file.
 - Added generic `.ygtc` flow models, component manifests, and `.gtpack` manifest types (plus schema exports) under `flow`, `component`, and `pack_manifest`.
 - Exposed helper APIs like `Flow::ingress`, `Flow::validate_components`, and `ComponentManifest::select_profile` to keep validation/profile logic consistent across repos.
 - Added `MODELS.md` + README guidance describing the opaque-ID/capabilities-only design and marked `pack_spec` as legacy for migration planning.
+- Removed deprecated `pack_spec` module now that `.gtpack` manifests are canonical.
 
 ## [0.4.9]
 - Add provider ID newtypes for shared usage: `GitProviderRef` and `ScannerRef`, with schema exports and serde round-trip tests.
