@@ -820,7 +820,7 @@ pub struct RolloutStatus {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct BundleSpec {
-    /// Bundle identifier.
+    /// Identifier of the distribution-bundle `.gtpack` (pack id).
     pub bundle_id: BundleId,
     /// Tenant context for the bundle.
     pub tenant: TenantCtx,

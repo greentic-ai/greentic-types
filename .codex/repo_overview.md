@@ -35,7 +35,7 @@
   **Key functionality:** Channel message envelopes with attachments/metadata; event envelopes with validated `EventId`, timestamps, payload and metadata; event provider descriptors (kind/transport/reliability/ordering/tags); worker request/response/message payload shapes; distributor API DTOs (env IDs, digests, statuses, artifact locations, signature/cache info, resolve request/response) aligned with `greentic:distributor-api@1.0.0`.
 - **Path:** `src/store.rs`  
   **Role:** Storefront, catalog, subscription, and desired state models.  
-  **Key functionality:** Themes/layout sections, storefronts/collections/product overrides; products/plans/subscriptions with pricing/versioning; bundle/spec/export descriptors for desired state; uses BTreeMap metadata and pack/component references.
+  **Key functionality:** Themes/layout sections, storefronts/collections/product overrides; products/plans/subscriptions with pricing/versioning; bundle/spec/export descriptors for desired state (BundleId/BundleSpec now described as ids for distribution-bundle `.gtpack` outputs); uses BTreeMap metadata and pack/component references.
 - **Path:** `src/supply_chain.rs`  
   **Role:** Supply-chain build/scan/signing/verification models.  
   **Key functionality:** Build plans/status with outputs/log refs; scan requests/results; attestation/signing/verification records; repo/store contexts; uses IndexMap with FNV hasher for no_std friendliness.

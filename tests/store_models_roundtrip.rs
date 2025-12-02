@@ -193,6 +193,29 @@ fn desired_state_and_bundle_roundtrip() {
 }
 
 #[test]
+fn distribution_bundle_spec_roundtrip() {
+    let tenant =
+        greentic_types::TenantCtx::new("prod".parse().unwrap(), "tenant-2".parse().unwrap());
+    let bundle = BundleSpec {
+        bundle_id: "bundle-dist-1".parse().unwrap(),
+        tenant,
+        environment_ref: "env-dist".parse().unwrap(),
+        desired_state_version: 7,
+        artifact_refs: vec![
+            "artifact-runner".parse().unwrap(),
+            "artifact-components".parse().unwrap(),
+        ],
+        metadata_refs: vec!["sbom-1".parse().unwrap(), "attestation-1".parse().unwrap()],
+        additional_metadata: map(json!({
+            "pack_kind": "distribution-bundle",
+            "notes": "offline rollout pack"
+        })),
+    };
+
+    assert_roundtrip(&bundle);
+}
+
+#[test]
 fn environment_roundtrip() {
     let env = Environment {
         id: "env-1".parse().unwrap(),
