@@ -164,30 +164,32 @@ Bindings:
 
 At a high level:
 
-- **Flow (.ygtc)** — a small DAG of nodes, each node referencing a component kind + profile + config + routing.
+- **Flow (.ygtc → Flow)** — a small DAG of nodes, each node referencing a component (with optional operation), input/output mappings, structured routing (`Routing` enum), and optional telemetry hints.
 - **ComponentManifest** — metadata and capability description for a WASM module.
-- **Pack (.gtpack)** — a directory / archive containing a manifest and one or more flows.
+- **Pack (.gtpack)** — a directory/archive containing a manifest with embedded flows and component manifests.
 - **DeploymentPlan** — a provider-agnostic plan describing “desired runtime topology”.
 - **Bindings** — derived, ephemeral host configuration for each node.
 - **TenantCtx** — tenant/team/user identity and scoping context (defined in `greentic-types`).
 
 ---
 
-## 4. Flow Specification (`.ygtc`)
+## 4. Flow Specification (`.ygtc` → Flow)
 
-Flows are YAML files describing logical graphs.
+Flows are YAML files describing logical graphs compiled into the unified Flow model.
 
-### 4.1 Flow Types
+### 4.1 Flow Kinds
 
-Each flow has exactly one type:
+Each flow has exactly one kind:
 
 ```yaml
-type: messaging | events
+kind: messaging | event | component_config | job | http
 ```
 
 - **`messaging`** — session-based messaging (Teams, WebChat, Slack, etc.).  
-- **`events`** — fire-and-forget events (webhook, timer, email-in, file-in, queue).  
-  - **Deployment flows** are a special case of `events` flows.
+- **`event`** — fire-and-forget events (webhook, timer, email-in, file-in, queue).  
+- **`component_config`** — flows that configure components/providers/infra.  
+- **`job`** — batch/background jobs.  
+- **`http`** — request/response style flows.
 
 No additional types are introduced for deployment or OAuth.
 
@@ -195,20 +197,39 @@ No additional types are introduced for deployment or OAuth.
 
 ### 4.2 Structure & Schema
 
-Minimal conceptual schema (YAML):
+Minimal conceptual schema (YAML → Flow):
 
 ```yaml
-type: messaging | events
+kind: messaging | event | component_config | job | http
+schema_version: flow-v1
 id: <flow-id>
-description: <string>
-
+entrypoints:
+  default: {}
+  telegram: {}
 nodes:
   <node-id>:
-    <component-kind>:
-      component: <optional-component-id>
-      profile: <optional-profile-name>
-      config: <arbitrary-config-object>
-      routing: <arbitrary-routing-object>  # interpreted by component/runtime
+    id: <node-id>
+    component:
+      id: <component-id>
+      pack_alias: <optional dependency alias>
+      operation: <optional operation>
+    input:
+      mapping: <arbitrary mapping object>
+    output:
+      mapping: <arbitrary mapping object>
+    routing:
+      next:
+        node_id: <node-id>
+      # or branch/end/reply/custom
+    telemetry:
+      span_name: <optional string>
+      attributes: { key: value, ... }
+      sampling: <optional string>
+metadata:
+  title: <optional>
+  description: <optional>
+  tags: [foo, bar]
+  extra: {}
 ```
 
 #### 4.2.1 Node IDs
@@ -223,40 +244,15 @@ nodes:
 
 #### 4.2.3 Component Reference
 
-`component` (optional) refines which component implementation is used:
+`component.id` references a component manifest entry; `pack_alias` points at dependency packs; `operation` names an operation within the component (optional).
 
-```yaml
-component: greentic.agent.qa
-```
+#### 4.2.4 Mappings
 
-This is a logical identifier, resolved via:
+`input.mapping` / `output.mapping` are opaque JSON objects used by tooling/runtimes to map payloads/context.
 
-- Pack component references  
-- Registries / stores  
-- Deployer configuration  
+#### 4.2.5 Routing
 
-#### 4.2.4 Profiles
-
-`profile` selects a capability bundle defined in the component manifest:
-
-```yaml
-profile: stateless-agent
-```
-
-If omitted:
-
-- The component’s `default` profile (if any) is used.  
-- Otherwise, raw capabilities are applied.
-
-#### 4.2.5 Config
-
-`config` is an arbitrary config object:
-
-```yaml
-config:
-  model: gpt-4.1-mini
-  temperature: 0.2
-```
+`routing` is structured via the `Routing` enum: `next { node_id }`, `branch { on_status, default }`, `end`, `reply`, or `custom` (arbitrary JSON).
 
 - Structure is **component-defined**.
 - The spec does not constrain fields beyond “must be valid YAML/JSON”.
@@ -265,35 +261,26 @@ config:
 
 ### 4.3 Routing Semantics
 
-Routing is **local to each node**.
+Routing is **local to each node** and uses the structured `Routing` enum:
 
-Simplest case:
+- `next { node_id }`
+- `branch { on_status: {status -> node}, default }`
+- `end`
+- `reply`
+- `custom <arbitrary JSON>`
+
+Example:
 
 ```yaml
 routing:
-  default: next
+  branch:
+    on_status:
+      ok: next
+      retry: handler
+    default: end
 ```
 
-More structured example:
-
-```yaml
-routing:
-  choices:
-    - label: "Billing"
-      to: billing
-    - label: "Technical"
-      to: tech
-  default: fallback
-```
-
-Rules:
-
-- Routing object is arbitrary YAML/JSON.
-- At the end of execution, a node returns a route label or direct node ID.
-- Runtime uses the routing object and route result to select the next node.
-- If a node yields `None` / no route, the flow run terminates.
-
-Flow-level semantics like “flow2flow” or “agent2agent” are implemented via components using generic host interfaces, **not** via special routing types.
+If a node yields no route (and no routing is declared), the flow run terminates. Flow-level semantics like “flow2flow” or “agent2agent” are implemented via components using generic host interfaces, **not** via special routing types.
 
 ---
 
@@ -308,7 +295,7 @@ Core validations for `.ygtc`:
    - The first node in `nodes` is ingress and must exist.
 
 3. **Routing targets**  
-   - For any node whose routing structure is a simple map (e.g., `{ default: foo, refund: bar }`), all values that are strings are treated as node IDs and must exist in `nodes`.
+   - Routing variants that reference node IDs (`next`, `branch`) must reference nodes present in `nodes`.
 
 4. **Component support**  
    - If a node references a component and the component manifest is available, the component’s `supports` must include this flow’s kind.
@@ -381,10 +368,13 @@ Fields:
 
 - `id` — logical component ID (string).
 - `version` — semantic version.
-- `supports` — flow kinds (e.g. `messaging`, `events`).
+- `supports` — flow kinds (e.g. `messaging`, `event`, `component_config`, `job`, `http`).
 - `world` — WIT world name (string; exact mapping defined by `greentic-interfaces`).
 - `profiles` — profile metadata.
 - `capabilities` — detailed capability description.
+- `operations` — list of operations with input/output schemas.
+- `config_schema` — optional JSON schema for configuration.
+- `resources` — resource hints (cpu/memory/latency).
 - `configurators` — mapping to configurator flow IDs.
 
 ### 5.2 Capabilities
@@ -456,7 +446,7 @@ The exact mapping of profile name → capabilities is handled internally by the 
 
 ### 5.4 Configurator Flows
 
-Configurator flows are standard `type: messaging` flows that:
+Configurator flows are standard `kind: messaging` flows that:
 
 1. Ask questions via cards/messages.
 2. Collect answers.
@@ -550,43 +540,74 @@ id: greentic.example.support
 version: 1.0.0
 name: "Support Assistant Pack"
 
-kind: application       # optional: application | deployment | mixed
+kind: application       # application | provider | infrastructure | library
 
 flows:
   - id: support_triage
-    file: flows/support_triage.ygtc
-  - id: refund_flow
-    file: flows/refund_flow.ygtc
+    kind: messaging
+    tags: [support]
+    entrypoints: ["default"]
+    flow:
+      schema_version: flow-v1
+      id: support_triage
+      kind: messaging
+      entrypoints:
+        default: {}
+      nodes:
+        ingress:
+          id: ingress
+          component:
+            id: greentic.process.router
+          input: { mapping: {} }
+          output: { mapping: {} }
+          routing:
+            branch:
+              on_status:
+                billing: billing
+                tech: tech
+              default: fallback
+          telemetry: {}
+        billing:
+          id: billing
+          component:
+            id: greentic.agent.qa
+            operation: handle_billing
+          input: { mapping: {} }
+          output: { mapping: {} }
+          routing: { end: {} }
+          telemetry: {}
+    entrypoints: ["default"]
 
 components:
   - id: greentic.agent.qa
-    version: "^1.2"
+    version: "1.2.0"
+    supports: [messaging]
+    operations:
+      - name: handle_billing
+        input_schema: {}
+        output_schema: {}
+    resources: {}
   - id: greentic.process.router
-    version: "~0.9"
+    version: "0.9.0"
+    supports: [messaging]
+    operations:
+      - name: route
+        input_schema: {}
+        output_schema: {}
+    resources: {}
 
-profiles:
-  defaults:
-    messaging:
-      agent/qa: stateless-agent
-      process/router: stateless-router
+dependencies:
+  - alias: provider.messaging
+    pack_id: vendor.messaging.telegram
+    version_req: "^1.0"
+    required_capabilities: ["messaging"]
 
-component_sources:
-  registry: "greentic-store"
-  fallback_registry: "https://example.com/registry"
+capabilities:
+  - name: messaging
+    description: "needs messaging surface"
 
-connectors:
-  messaging:
-    teams:
-      flow: support_triage
-      team_id: "12345"
-      channel: "support"
-    webchat:
-      flow: support_triage
-      site: "main"
-  events:
-    webhook:
-      flow: refund_flow
-      path: "/hooks/refunds"
+signatures:
+  signatures: []
 ```
 
 Fields:
@@ -596,43 +617,18 @@ Fields:
 - `name` — human-friendly.
 - `kind` — hint:
   - `application` — standard digital worker.
-  - `deployment` — primarily deployment flows.
-  - `mixed` — both.
-- `flows[]` — mapping of IDs to `.ygtc` files.
-- `components[]` — component ID + version requirement.
-- `profiles` — optional default profiles per flow type + node kind.
-- `component_sources` — where to fetch components.
-- `connectors` — high-level mapping between external connectors and flows (still generic).
+  - `provider` — component provider packs.
+  - `infrastructure` — infrastructure packs.
+  - `library` — shared building blocks.
+- `flows[]` — embedded Flow entries (FlowKind + Flow).
+- `components[]` — component manifests bundled in the pack.
+- `dependencies[]` — pack dependencies with aliases and required capabilities.
+- `capabilities` — capability declarations.
+- `signatures` — detached signatures bundle.
 
 ### 6.3 Connectors
 
-Connectors are optional, high-level mapping hints.
-
-Example:
-
-```yaml
-connectors:
-  messaging:
-    teams:
-      flow: support_triage
-      team_id: "12345"
-      channel: "support"
-    webchat:
-      flow: support_triage
-      site: "main"
-  events:
-    webhook:
-      flow: refund_flow
-      path: "/hooks/refunds"
-```
-
-These are interpreted by:
-
-- Runners
-- Channel adapters
-- Deployer
-
-Flows remain connector-agnostic.
+Connectors are optional, high-level mapping hints interpreted by hosts (runners/channel adapters/deployer). Flows remain connector-agnostic; embedded Flow definitions do not depend on connector configuration. Hosts may ignore connectors entirely or express ingress wiring elsewhere.
 
 ---
 
@@ -643,8 +639,8 @@ Flows remain connector-agnostic.
 The `kind` field distinguishes:
 
 - `application` — normal digital worker packs.
-- `deployment` — packs whose flows **primarily operate on DeploymentPlan** and produce IaC or provisioning effects.
-- `mixed` — both roles.
+- `deployment` — packs whose flows **primarily operate on DeploymentPlan** and produce IaC or provisioning effects (mapped to `infrastructure` in the new `PackKind` list).
+- `mixed` — both roles (use `application` + suitable dependencies if needed).
 
 This is a hint only; core logic does not require it.
 
@@ -706,7 +702,7 @@ Important:
 
 ### 7.3 Deployment Flows (Events Flows)
 
-Deployment flows are **normal `type: events` flows** that:
+Deployment flows are **normal `kind: event` flows** that:
 
 - Read `DeploymentPlan` via WIT `greentic:deploy-plan`.
 - Generate IaC templates into preopened filesystems (e.g. `/iac`).
@@ -1032,9 +1028,9 @@ Levels (informal):
 - **TenantCtx** — tenant/team/user context for multi-tenant execution.
 - **DeploymentPlan** — provider-agnostic description of desired deployment topology.
 - **Configurator Flow** — messaging flow used to configure a component.
-- **Messaging Flow** — `type: messaging` flow triggered by conversational channels.
-- **Events Flow** — `type: events` flow triggered by arbitrary events (webhook, timers, deployment).
-- **Deployment Flow** — an events flow that operates on a `DeploymentPlan`.
+- **Messaging Flow** — `kind: messaging` flow triggered by conversational channels.
+- **Event Flow** — `kind: event` flow triggered by arbitrary events (webhook, timers, deployment).
+- **Deployment Flow** — an event flow that operates on a `DeploymentPlan`.
 - **Host Capability** — a generic host service (secrets, state, messaging, events, http, telemetry, oauth, iac).
 - **WIT World** — interface definition for WASM host/guest interaction.
 
@@ -1042,63 +1038,118 @@ Levels (informal):
 
 ## 14. Worked Examples
 
-### 14.1 Messaging Flow — Support Triage
+### 14.1 Messaging Flow — Support Triage (Flow model)
 
 ```yaml
-type: messaging
+schema_version: flow-v1
 id: support_triage
-description: Route incoming support chats to the right expert
-
+kind: messaging
+entrypoints:
+  default: {}
 nodes:
   router:
-    process/router:
-      config:
-        mode: "intent"
-      routing:
-        billing: billing
-        qa: qa
+    id: router
+    component:
+      id: greentic.process.router
+      operation: route
+    input: { mapping: {} }
+    output: { mapping: {} }
+    routing:
+      branch:
+        on_status:
+          billing: billing
+          qa: qa
         default: fallback
+    telemetry: {}
 
   billing:
-    agent/qa:
-      component: greentic.agent.qa
-      profile: stateless-agent
-      config:
-        model: gpt-4.1-mini
+    id: billing
+    component:
+      id: greentic.agent.qa
+      operation: handle_billing
+    input: { mapping: {} }
+    output: { mapping: {} }
+    routing:
+      end: {}
+    telemetry: {}
 
   qa:
-    agent/qa:
-      component: greentic.agent.qa
-      profile: stateless-agent
-      config:
-        model: gpt-4.1
+    id: qa
+    component:
+      id: greentic.agent.qa
+      operation: handle_qa
+    input: { mapping: {} }
+    output: { mapping: {} }
+    routing:
+      end: {}
+    telemetry: {}
 
   fallback:
-    messaging/reply:
-      config:
-        text: "I will transfer you to a human agent."
+    id: fallback
+    component:
+      id: greentic.messaging.reply
+      operation: reply
+    input:
+      mapping:
+        template: { text: "I will transfer you to a human agent." }
+    output: { mapping: {} }
+    routing:
+      end: {}
+    telemetry: {}
 ```
 
-### 14.2 Events Flow — Webhook → Transform → HTTP
+### 14.2 Event Flow — Webhook → Transform → HTTP (Flow model)
 
 ```yaml
-type: events
+schema_version: flow-v1
 id: webhook_to_http
-description: Transform a webhook payload and forward it
-
+kind: event
+entrypoints:
+  webhook: {}
 nodes:
-  transform:
-    transform.json:
-      config:
-        mapping: order_mapping_v1
-      routing:
-        default: post_out
+  ingress:
+    id: ingress
+    component:
+      id: greentic.webhook.ingress
+      operation: receive
+    input: { mapping: {} }
+    output: { mapping: {} }
+    routing:
+      next:
+        node_id: transform
+    telemetry: {}
 
-  post_out:
-    http.out:
-      config:
-        url: "https://api.partner.com/orders"
+  transform:
+    id: transform
+    component:
+      id: greentic.process.transform
+      operation: render
+    input:
+      mapping:
+        template: |
+          {
+            "id": "{{payload.id}}",
+            "value": "{{payload.value}}"
+          }
+    output: { mapping: {} }
+    routing:
+      next:
+        node_id: http_out
+    telemetry: {}
+
+  http_out:
+    id: http_out
+    component:
+      id: greentic.http.forwarder
+      operation: send
+    input:
+      mapping:
         method: POST
+        url: https://api.partner.com/orders
+    output: { mapping: {} }
+    routing:
+      end: {}
+    telemetry: {}
 ```
 
 ### 14.3 Deployment Flow — Generic IaC

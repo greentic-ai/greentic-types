@@ -127,25 +127,13 @@ let ctx = TenantCtx::new("prod".parse().unwrap(), "acme".parse().unwrap())
 ```
 
 ## Flow, component, and pack models
-- [`Flow`, `Node`, `FlowKind`](src/flow.rs) describe `.ygtc` graphs using insertion-ordered maps so the first node stays the implicit ingress.
-- [`ComponentManifest`](src/component.rs) captures capabilities, configurators, and exposes helpers like `supports_kind` and `select_profile`.
-- [`PackManifest`](src/pack_manifest.rs) bundles flows, component requirements, opaque profile/source/connector metadata for `.gtpack`, and now includes the optional `PackKind` hint (`application`, `deployment`, or `mixed`).
+- [`Flow`, `Node`, `Routing`, `FlowKind`](src/flow.rs) form the unified flow model (Greentic Flow v1) with structured routing, telemetry hints, and component refs using ID newtypes; nodes remain insertion-ordered so the first entry is the ingress.
+- [`ComponentManifest`](src/component.rs) captures capabilities, configurators, operations, optional config schema, resource hints, and profile helpers like `select_profile`.
+- [`PackManifest`](src/pack_manifest.rs) embeds flows directly via `PackFlowEntry`, includes components, dependencies, capabilities, signatures, and the new `PackKind` (`application`, `provider`, `infrastructure`, `library`).
 - `HostCapabilities` expose generic IaC toggles via the `iac` block so deployment components can request template write/execute access without encoding provider details.
-- [`DeploymentPlan`](src/deployment.rs) is the shared, provider-neutral description of what needs to run for a tenant/environment; deployers and runners exchange it as JSON when orchestrating deployment flows.
+- [`DeploymentPlan`](src/deployment.rs) stays the shared, provider-neutral description of what needs to run for a tenant/environment.
 
-Read [MODELS.md](MODELS.md) for the guiding principles: IDs are opaque strings, capabilities only describe host/WASI interaction, and bindings stay outside of these documents.
-
-```rust
-use greentic_types::{ComponentManifest, FlowValidationError, Flow, FlowKind};
-
-fn ensure(flow: &Flow, manifests: &[ComponentManifest]) -> Result<(), FlowValidationError> {
-    flow.validate_components(|component_id| {
-        manifests.iter().find(|m| &m.id == component_id)
-    })
-}
-```
-
-`Flow` also exposes `ingress()` to fetch the implicit entrypoint, while `ComponentManifest::select_profile` handles profile fallback logic without re-implementing it elsewhere.
+Read [MODELS.md](MODELS.md) for the guiding principles: IDs are opaque strings, capabilities describe host/WASI interaction, and bindings stay outside these documents.
 
 ## Harmonised model
 - **TenantCtx & TenantIdentity** – shared across runner, connectors, and state/session stores; keeps legacy (`tenant`, `team`, `user`) and next-gen (`tenant_id`, `team_id`, `user_id`, `impersonation`) fields aligned.

@@ -1,74 +1,58 @@
+use std::collections::BTreeMap;
+
 use greentic_types::{
-    ComponentCapabilities, ComponentManifest, ComponentProfiles, Flow, FlowKind, FlowNodes,
-    FlowValidationError, Node,
+    ComponentCapabilities, ComponentManifest, ComponentOperation, ComponentProfiles, Flow,
+    FlowComponentRef, FlowId, FlowKind, FlowMetadata, InputMapping, Node, OutputMapping,
+    ResourceHints, Routing, TelemetryHints,
 };
+use indexmap::IndexMap;
 use semver::Version;
 use serde_json::Value;
 
-fn sample_manifest(id: &str, supports: &[FlowKind]) -> ComponentManifest {
-    ComponentManifest {
-        id: id.parse().unwrap(),
-        version: Version::parse("1.0.0").unwrap(),
-        supports: supports.to_vec(),
-        world: "test:component@1.0.0".into(),
-        profiles: ComponentProfiles {
-            default: Some("default".into()),
-            supported: vec!["default".into(), "advanced".into()],
-        },
-        capabilities: ComponentCapabilities::default(),
-        configurators: None,
-    }
-}
-
-fn flow_with_node(component: &str, kind: FlowKind) -> Flow {
-    let mut nodes: FlowNodes = FlowNodes::default();
-    nodes.insert(
-        "ingress".parse().unwrap(),
-        Node {
-            kind: "component-kind".into(),
-            profile: None,
-            component: Some(component.parse().unwrap()),
-            config: Value::Null,
-            routing: Value::Null,
-        },
-    );
-    Flow {
-        kind,
-        id: format!("{component}.flow").parse().unwrap(),
-        description: None,
-        nodes,
-    }
-}
-
 #[test]
-fn ingress_respects_insertion_order() {
-    let mut nodes = FlowNodes::default();
+fn flow_ingress_respects_insertion_order() {
+    let node_a_id: FlowId = "flow.demo".parse().unwrap();
+    let mut nodes: IndexMap<_, _, greentic_types::flow::FlowHasher> = IndexMap::default();
     nodes.insert(
         "first".parse().unwrap(),
         Node {
-            kind: "kind-1".into(),
-            profile: None,
-            component: None,
-            config: Value::Null,
-            routing: Value::Null,
+            id: "first".parse().unwrap(),
+            component: component_ref("component.first"),
+            input: InputMapping {
+                mapping: Value::Null,
+            },
+            output: OutputMapping {
+                mapping: Value::Null,
+            },
+            routing: Routing::Next {
+                node_id: "second".parse().unwrap(),
+            },
+            telemetry: TelemetryHints::default(),
         },
     );
     nodes.insert(
         "second".parse().unwrap(),
         Node {
-            kind: "kind-2".into(),
-            profile: None,
-            component: None,
-            config: Value::Null,
-            routing: Value::Null,
+            id: "second".parse().unwrap(),
+            component: component_ref("component.second"),
+            input: InputMapping {
+                mapping: Value::Null,
+            },
+            output: OutputMapping {
+                mapping: Value::Null,
+            },
+            routing: Routing::End,
+            telemetry: TelemetryHints::default(),
         },
     );
 
     let flow = Flow {
+        schema_version: "flow-v1".into(),
+        id: node_a_id,
         kind: FlowKind::Messaging,
-        id: "flow.demo".parse().unwrap(),
-        description: None,
+        entrypoints: BTreeMap::new(),
         nodes,
+        metadata: FlowMetadata::default(),
     };
 
     let ingress = flow.ingress().expect("ingress");
@@ -76,36 +60,92 @@ fn ingress_respects_insertion_order() {
 }
 
 #[test]
-fn validate_components_detects_missing_manifest() {
-    let flow = flow_with_node("component.missing", FlowKind::Messaging);
-    let err = flow.validate_components(|_| None).expect_err("should fail");
-    assert!(matches!(err, FlowValidationError::MissingComponent { .. }));
+fn flow_json_roundtrips_with_routing_variants() {
+    let mut nodes: IndexMap<_, _, greentic_types::flow::FlowHasher> = IndexMap::default();
+    nodes.insert(
+        "branch".parse().unwrap(),
+        Node {
+            id: "branch".parse().unwrap(),
+            component: component_ref("component.branch"),
+            input: InputMapping {
+                mapping: serde_json::json!({"input": "value"}),
+            },
+            output: OutputMapping {
+                mapping: serde_json::json!({"output": "value"}),
+            },
+            routing: Routing::Branch {
+                on_status: BTreeMap::from([("ok".to_string(), "next".parse().unwrap())]),
+                default: Some("end".parse().unwrap()),
+            },
+            telemetry: TelemetryHints::default(),
+        },
+    );
+    nodes.insert(
+        "next".parse().unwrap(),
+        Node {
+            id: "next".parse().unwrap(),
+            component: component_ref("component.next"),
+            input: InputMapping {
+                mapping: Value::Null,
+            },
+            output: OutputMapping {
+                mapping: Value::Null,
+            },
+            routing: Routing::Reply,
+            telemetry: TelemetryHints::default(),
+        },
+    );
+    nodes.insert(
+        "end".parse().unwrap(),
+        Node {
+            id: "end".parse().unwrap(),
+            component: component_ref("component.end"),
+            input: InputMapping {
+                mapping: Value::Null,
+            },
+            output: OutputMapping {
+                mapping: Value::Null,
+            },
+            routing: Routing::End,
+            telemetry: TelemetryHints::default(),
+        },
+    );
+
+    let flow = Flow {
+        schema_version: "flow-v1".into(),
+        id: "flow.branching".parse().unwrap(),
+        kind: FlowKind::Job,
+        entrypoints: BTreeMap::from([("default".into(), Value::Null)]),
+        nodes,
+        metadata: FlowMetadata::default(),
+    };
+
+    let encoded = serde_json::to_string(&flow).expect("serialize");
+    let decoded: Flow = serde_json::from_str(&encoded).expect("deserialize");
+    assert_eq!(decoded, flow);
 }
 
 #[test]
-fn validate_components_checks_supports() {
-    let flow = flow_with_node("component.a", FlowKind::Messaging);
-    let manifest = sample_manifest("component.a", &[FlowKind::Events]);
-
-    let err = flow
-        .validate_components(|cid| {
-            if cid.as_str() == "component.a" {
-                Some(&manifest)
-            } else {
-                None
-            }
-        })
-        .expect_err("unsupported flow kind should fail");
-
-    assert!(matches!(
-        err,
-        FlowValidationError::UnsupportedComponent { .. }
-    ));
-}
-
-#[test]
-fn component_profile_selection() {
-    let manifest = sample_manifest("component.profile", &[FlowKind::Messaging]);
+fn component_manifest_defaults_extend() {
+    let manifest = ComponentManifest {
+        id: "component.profile".parse().unwrap(),
+        version: Version::parse("1.0.0").unwrap(),
+        supports: vec![FlowKind::Messaging],
+        world: "test:component@1.0.0".into(),
+        profiles: ComponentProfiles {
+            default: Some("default".into()),
+            supported: vec!["default".into(), "advanced".into()],
+        },
+        capabilities: ComponentCapabilities::default(),
+        configurators: None,
+        operations: vec![ComponentOperation {
+            name: "handle".into(),
+            input_schema: Value::Null,
+            output_schema: Value::Null,
+        }],
+        config_schema: None,
+        resources: ResourceHints::default(),
+    };
 
     let default = manifest.select_profile(None).expect("default");
     assert_eq!(default, Some("default"));
@@ -120,4 +160,12 @@ fn component_profile_selection() {
         err,
         greentic_types::ComponentProfileError::UnsupportedProfile { .. }
     ));
+}
+
+fn component_ref(id: &str) -> FlowComponentRef {
+    FlowComponentRef {
+        id: id.parse().unwrap(),
+        pack_alias: None,
+        operation: None,
+    }
 }

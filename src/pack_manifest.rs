@@ -1,107 +1,133 @@
-//! Canonical pack manifest (.gtpack) representation.
+//! Canonical pack manifest (.gtpack) representation embedding flows and components.
 
 use alloc::string::String;
 use alloc::vec::Vec;
 
 use semver::Version;
 
-use crate::{ComponentId, FlowId, PackId, SemverReq};
+use crate::{ComponentManifest, Flow, FlowId, FlowKind, PackId, SemverReq, Signature};
 
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 /// Hint describing the primary purpose of a pack.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub enum PackKind {
-    /// Normal digital worker packs.
+    /// Application packs.
     Application,
-    /// Packs whose flows primarily operate on deployment plans.
-    Deployment,
-    /// Packs that mix both application and deployment flows.
-    Mixed,
+    /// Provider packs exporting components.
+    Provider,
+    /// Infrastructure packs.
+    Infrastructure,
+    /// Library packs.
+    Library,
 }
 
-/// Pack manifest describing bundled flows and referenced components.
+/// Pack manifest describing bundled flows and components.
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(
+    feature = "schemars",
+    derive(JsonSchema),
+    schemars(
+        title = "Greentic PackManifest v1",
+        description = "Canonical pack manifest embedding flows, components, dependencies and signatures.",
+        rename = "greentic.pack-manifest.v1"
+    )
+)]
 pub struct PackManifest {
+    /// Schema version for the pack manifest.
+    pub schema_version: String,
     /// Logical pack identifier.
-    pub id: PackId,
+    pub pack_id: PackId,
     /// Pack semantic version.
     #[cfg_attr(
         feature = "schemars",
         schemars(with = "String", description = "SemVer version")
     )]
     pub version: Version,
-    /// Optional human-friendly name.
-    #[cfg_attr(
-        feature = "serde",
-        serde(default, skip_serializing_if = "Option::is_none")
-    )]
-    pub name: Option<String>,
-    /// Flow references bundled within the pack.
+    /// Pack kind hint.
+    pub kind: PackKind,
+    /// Pack publisher.
+    pub publisher: String,
+    /// Component descriptors bundled within the pack.
     #[cfg_attr(feature = "serde", serde(default))]
-    pub flows: Vec<PackFlowRef>,
-    /// Component references required by the pack.
+    pub components: Vec<ComponentManifest>,
+    /// Flow entries embedded in the pack.
     #[cfg_attr(feature = "serde", serde(default))]
-    pub components: Vec<PackComponentRef>,
-    /// Optional pack-level profile defaults.
-    #[cfg_attr(
-        feature = "serde",
-        serde(default, skip_serializing_if = "Option::is_none")
-    )]
-    pub profiles: Option<Value>,
-    /// Optional component source metadata (registries, mirrors, etc.).
-    #[cfg_attr(
-        feature = "serde",
-        serde(default, skip_serializing_if = "Option::is_none")
-    )]
-    pub component_sources: Option<Value>,
-    /// Optional connector metadata describing ingress wiring.
-    #[cfg_attr(
-        feature = "serde",
-        serde(default, skip_serializing_if = "Option::is_none")
-    )]
-    pub connectors: Option<Value>,
-    /// Optional hint about the primary intent of this pack.
-    #[cfg_attr(
-        feature = "serde",
-        serde(default, skip_serializing_if = "Option::is_none")
-    )]
-    pub kind: Option<PackKind>,
+    pub flows: Vec<PackFlowEntry>,
+    /// Pack dependencies.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub dependencies: Vec<PackDependency>,
+    /// Capability declarations for the pack.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub capabilities: Vec<ComponentCapability>,
+    /// Pack signatures.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub signatures: PackSignatures,
 }
 
-/// Flow reference within a pack manifest.
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// Flow entry embedded in a pack.
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
-pub struct PackFlowRef {
-    /// Flow identifier as referenced by connectors/runners.
+pub struct PackFlowEntry {
+    /// Flow identifier.
     pub id: FlowId,
-    /// Relative file path (inside the pack) to the .ygtc document.
-    pub file: String,
+    /// Flow kind.
+    pub kind: FlowKind,
+    /// Flow definition.
+    pub flow: Flow,
+    /// Flow tags.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub tags: Vec<String>,
+    /// Additional entrypoint identifiers for discoverability.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub entrypoints: Vec<String>,
 }
 
-/// Component reference within a pack manifest.
+/// Dependency entry referencing another pack.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
-pub struct PackComponentRef {
-    /// Component identifier.
-    pub id: ComponentId,
-    /// Supported version requirement.
+pub struct PackDependency {
+    /// Local alias for the dependency.
+    pub alias: String,
+    /// Referenced pack identifier.
+    pub pack_id: PackId,
+    /// Required version.
     pub version_req: SemverReq,
-    /// Optional source hint (registry, OCI ref, etc.).
+    /// Required capabilities.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub required_capabilities: Vec<String>,
+}
+
+/// Named capability advertised by a pack or component collection.
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct ComponentCapability {
+    /// Capability name.
+    pub name: String,
+    /// Optional description or metadata.
     #[cfg_attr(
         feature = "serde",
         serde(default, skip_serializing_if = "Option::is_none")
     )]
-    pub source: Option<String>,
+    pub description: Option<String>,
+}
+
+/// Signature bundle accompanying a pack manifest.
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct PackSignatures {
+    /// Optional detached signatures.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub signatures: Vec<Signature>,
 }

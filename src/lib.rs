@@ -56,6 +56,8 @@ pub const SCHEMA_BASE_URL: &str = "https://greentic-ai.github.io/greentic-types/
 
 pub mod bindings;
 pub mod capabilities;
+#[cfg(feature = "std")]
+pub mod cbor;
 pub mod component;
 pub mod deployment;
 pub mod distributor;
@@ -88,12 +90,14 @@ pub use bindings::hints::{
 pub use capabilities::{
     Capabilities, FsCaps, HttpCaps, KvCaps, Limits, NetCaps, SecretsCaps, TelemetrySpec, ToolsCaps,
 };
+#[cfg(feature = "std")]
+pub use cbor::{CborError, decode_pack_manifest, encode_pack_manifest};
 pub use component::{
-    ComponentCapabilities, ComponentConfigurators, ComponentManifest, ComponentProfileError,
-    ComponentProfiles, EnvCapabilities, EventsCapabilities, FilesystemCapabilities, FilesystemMode,
-    FilesystemMount, HostCapabilities, HttpCapabilities, IaCCapabilities, MessagingCapabilities,
-    SecretsCapabilities, StateCapabilities, TelemetryCapabilities, TelemetryScope,
-    WasiCapabilities,
+    ComponentCapabilities, ComponentConfigurators, ComponentManifest, ComponentOperation,
+    ComponentProfileError, ComponentProfiles, EnvCapabilities, EventsCapabilities,
+    FilesystemCapabilities, FilesystemMode, FilesystemMount, HostCapabilities, HttpCapabilities,
+    IaCCapabilities, MessagingCapabilities, ResourceHints, SecretsCapabilities, StateCapabilities,
+    TelemetryCapabilities, TelemetryScope, WasiCapabilities,
 };
 pub use context::{Cloud, DeploymentCtx, Platform};
 pub use deployment::{
@@ -109,11 +113,16 @@ pub use events::{EventEnvelope, EventId, EventMetadata};
 pub use events_provider::{
     EventProviderDescriptor, EventProviderKind, OrderingKind, ReliabilityKind, TransportKind,
 };
-pub use flow::{Flow, FlowKind, FlowNodes, FlowValidationError, Node};
+pub use flow::{
+    ComponentRef as FlowComponentRef, Flow, FlowKind, FlowMetadata, InputMapping, Node,
+    OutputMapping, Routing, TelemetryHints,
+};
 pub use messaging::{Attachment, ChannelMessageEnvelope, MessageMetadata};
 pub use outcome::Outcome;
 pub use pack::{PackRef, Signature, SignatureAlgorithm};
-pub use pack_manifest::{PackComponentRef, PackFlowRef, PackKind, PackManifest};
+pub use pack_manifest::{
+    ComponentCapability, PackDependency, PackFlowEntry, PackKind, PackManifest, PackSignatures,
+};
 pub use policy::{AllowList, NetworkPolicy, PolicyDecision, PolicyDecisionStatus, Protocol};
 #[cfg(feature = "time")]
 pub use run::RunResult;
@@ -252,8 +261,7 @@ pub mod ids {
     pub const TENANT_DID_DOCUMENT: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/tenant-did-document.schema.json";
     /// Flow schema.
-    pub const FLOW: &str =
-        "https://greentic-ai.github.io/greentic-types/schemas/v1/flow.schema.json";
+    pub const FLOW: &str = "greentic.flow.v1";
     /// Node schema.
     pub const NODE: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/node.schema.json";
@@ -261,8 +269,7 @@ pub mod ids {
     pub const COMPONENT_MANIFEST: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/component-manifest.schema.json";
     /// Pack manifest schema.
-    pub const PACK_MANIFEST: &str =
-        "https://greentic-ai.github.io/greentic-types/schemas/v1/pack-manifest.schema.json";
+    pub const PACK_MANIFEST: &str = "greentic.pack-manifest.v1";
     /// Limits schema.
     pub const LIMITS: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/limits.schema.json";

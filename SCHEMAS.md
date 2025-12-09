@@ -8,6 +8,8 @@ https://greentic-ai.github.io/greentic-types/schemas/v1/<name>.schema.json
 
 The `bin/export-schemas.rs` helper (or `greentic_types::write_all_schemas`) materialises the schemas into `dist/schemas/v1/`. The GitHub Pages workflow runs the helper on every push to `master` and republishes the `dist/` directory.
 
+The v1 flow/pack model now embeds flows inside `PackManifest` and publishes the Flow schema as `greentic.flow.v1` and the pack schema as `greentic.pack-manifest.v1`.
+
 ## Canonical URLs
 
 | Type | Schema URL |
@@ -25,10 +27,10 @@ The `bin/export-schemas.rs` helper (or `greentic_types::write_all_schemas`) mate
 | RepoAuth | https://greentic-ai.github.io/greentic-types/schemas/v1/repo-auth.schema.json |
 | RepoTenantConfig | https://greentic-ai.github.io/greentic-types/schemas/v1/repo-tenant-config.schema.json |
 | TenantDidDocument | https://greentic-ai.github.io/greentic-types/schemas/v1/tenant-did-document.schema.json |
-| Flow | https://greentic-ai.github.io/greentic-types/schemas/v1/flow.schema.json |
+| Flow (greentic.flow.v1) | https://greentic-ai.github.io/greentic-types/schemas/v1/flow.schema.json |
 | Node | https://greentic-ai.github.io/greentic-types/schemas/v1/node.schema.json |
 | ComponentManifest | https://greentic-ai.github.io/greentic-types/schemas/v1/component-manifest.schema.json |
-| PackManifest | https://greentic-ai.github.io/greentic-types/schemas/v1/pack-manifest.schema.json |
+| PackManifest (greentic.pack-manifest.v1) | https://greentic-ai.github.io/greentic-types/schemas/v1/pack-manifest.schema.json |
 | Limits | https://greentic-ai.github.io/greentic-types/schemas/v1/limits.schema.json |
 | TelemetrySpec | https://greentic-ai.github.io/greentic-types/schemas/v1/telemetry-spec.schema.json |
 | NodeSummary | https://greentic-ai.github.io/greentic-types/schemas/v1/node-summary.schema.json |

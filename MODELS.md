@@ -15,19 +15,19 @@ every domain. The models exported by `greentic-types` follow three simple rules:
    policies.
 
 3. **Packs and flows never encode bindings or connectors.**  
-   `Flow` holds a DAG of nodes with opaque config/routing blobs. `PackManifest` bundles flows and
-   component references plus optional profile defaults or connector hints, but no WASI paths,
-   secrets, or tenant-specific wiring. Bindings are generated later by hosts like `greentic-pack`
-   and `greentic-runner`.
+   `Flow` holds a DAG of nodes with explicit routing (`Routing` enum) and opaque config/mapping
+   blobs. `PackManifest` embeds flows directly alongside component manifests, dependencies, and
+   capabilities, but no WASI paths, secrets, or tenant-specific wiring. Bindings are generated
+   later by hosts like `greentic-pack` and `greentic-runner`.
 
 This separation lets humans and small LLMs edit `.ygtc` and `.gtpack` files confidently while hosts
 handle sandboxing, policies, and domain-specific behaviour elsewhere.
 
 ## Pack kinds
 
-`PackManifest` now carries an optional `kind` field that can be `application`, `deployment`, or
-`mixed`. It is purely advisory; runtimes still treat flows uniformly. The hint gives CLIs and UX a
-way to highlight packs that primarily operate on deployment plans without forcing new flow kinds.
+`PackManifest` carries a `kind` hint (`application`, `provider`, `infrastructure`, `library`). It is
+advisory; runtimes still treat flows uniformly. The hint gives CLIs and UX a way to highlight packs
+without forcing new flow kinds.
 
 ## Host IaC capabilities
 

@@ -19,10 +19,10 @@ The introduction of **Repo**, **Store**, and **Distributor** completes the lifec
 ## 2. Core Concepts
 
 - **Pack**  
-  A signed, versioned bundle containing flows, components, schemas, templates, configuration, metadata, and supply-chain attestations. Packs are published to OCI registries or Greentic-Repo instances.
+  A signed, versioned bundle containing component manifests and embedded flows (PackManifest) plus schemas/templates/metadata, capabilities, and supply-chain attestations. Packs are published to OCI registries or Greentic-Repo instances.
 
 - **Flow**  
-  A declarative YAML graph (`.ygtc`) describing automation for a **messaging** or **event** scenario. A flow includes its type, a set of components, configuration, and routing rules that define execution paths.
+  A declarative YAML graph (`.ygtc`) compiled into the unified Flow model (FlowKind: messaging, event, component_config, job, http). A flow includes component refs, input/output mappings, structured routing (Routing enum), telemetry hints, and uses insertion order for ingress.
 
 - **Component**  
   A Wasm module implementing logic described by a manifest. Components are self-describing (metadata, WIT imports, capabilities) and are independently versioned and fetched from OCI or Repo.

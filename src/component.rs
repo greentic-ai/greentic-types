@@ -14,7 +14,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 /// Component metadata describing capabilities and supported flows.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct ComponentManifest {
@@ -41,6 +41,18 @@ pub struct ComponentManifest {
         serde(default, skip_serializing_if = "Option::is_none")
     )]
     pub configurators: Option<ComponentConfigurators>,
+    /// Operation-level descriptions.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub operations: Vec<ComponentOperation>,
+    /// Optional configuration schema.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub config_schema: Option<serde_json::Value>,
+    /// Resource usage hints for deployers/schedulers.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub resources: ResourceHints,
 }
 
 impl ComponentManifest {
@@ -119,6 +131,44 @@ pub struct ComponentConfigurators {
         serde(default, skip_serializing_if = "Option::is_none")
     )]
     pub full: Option<FlowId>,
+}
+
+/// Operation descriptor for a component.
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct ComponentOperation {
+    /// Operation name (for example `handle_message`).
+    pub name: String,
+    /// Input schema for the operation.
+    pub input_schema: serde_json::Value,
+    /// Output schema for the operation.
+    pub output_schema: serde_json::Value,
+}
+
+/// Resource usage hints for a component.
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct ResourceHints {
+    /// Suggested CPU in millis.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub cpu_millis: Option<u32>,
+    /// Suggested memory in MiB.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub memory_mb: Option<u32>,
+    /// Expected average latency in milliseconds.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub average_latency_ms: Option<u32>,
 }
 
 /// Host + WASI capabilities required by a component.

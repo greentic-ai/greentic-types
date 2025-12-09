@@ -1,5 +1,6 @@
-//! Generic flow graph definitions used by packs and runtimes.
+//! Unified flow model used by packs and runtimes.
 
+use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::string::String;
 use core::hash::BuildHasherDefault;
 
@@ -7,53 +8,70 @@ use fnv::FnvHasher;
 use indexmap::IndexMap;
 use serde_json::Value;
 
-use crate::{ComponentId, FlowId, NodeId, component::ComponentManifest};
+use crate::{ComponentId, FlowId, NodeId};
 
 /// Build hasher used for flow node maps (Fnv for `no_std` friendliness).
-type FlowHasher = BuildHasherDefault<FnvHasher>;
-
-/// Ordered node container referenced by [`Flow`].
-pub type FlowNodes = IndexMap<NodeId, Node, FlowHasher>;
+pub type FlowHasher = BuildHasherDefault<FnvHasher>;
 
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-/// Supported flow kinds.
+/// Supported flow kinds across Greentic packs.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub enum FlowKind {
-    /// Session-centric messaging flows (chat, DM, etc.).
+    /// Inbound messaging flows (Telegram, Teams, HTTP chat).
     Messaging,
-    /// Fire-and-forget event flows (webhooks, timers, etc.).
-    Events,
+    /// Event-driven flows (webhooks, NATS, cron, etc.).
+    Event,
+    /// Flows that configure components/providers/infrastructure.
+    ComponentConfig,
+    /// Batch/background jobs.
+    Job,
+    /// HTTP-style request/response flows.
+    Http,
 }
 
-/// Canonical .ygtc flow representation.
+/// Canonical flow representation embedded in packs.
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(
+    feature = "schemars",
+    derive(JsonSchema),
+    schemars(
+        title = "Greentic Flow v1",
+        description = "Canonical flow model with components, routing and telemetry.",
+        rename = "greentic.flow.v1"
+    )
+)]
 pub struct Flow {
-    /// Flow execution kind.
-    pub kind: FlowKind,
+    /// Schema version for the flow document.
+    pub schema_version: String,
     /// Flow identifier inside the pack.
     pub id: FlowId,
-    /// Optional human-friendly summary.
+    /// Flow execution kind.
+    pub kind: FlowKind,
+    /// Entrypoints for this flow keyed by name (for example `default`, `telegram`, `http:/path`).
+    #[cfg_attr(feature = "serde", serde(default))]
     #[cfg_attr(
-        feature = "serde",
-        serde(default, skip_serializing_if = "Option::is_none")
+        feature = "schemars",
+        schemars(with = "alloc::collections::BTreeMap<String, Value>")
     )]
-    pub description: Option<String>,
+    pub entrypoints: BTreeMap<String, Value>,
     /// Ordered node map describing the flow graph.
     #[cfg_attr(feature = "serde", serde(default))]
     #[cfg_attr(
         feature = "schemars",
         schemars(with = "alloc::collections::BTreeMap<NodeId, Node>")
     )]
-    pub nodes: FlowNodes,
+    pub nodes: IndexMap<NodeId, Node, FlowHasher>,
+    /// Optional metadata for authoring/UX.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub metadata: FlowMetadata,
 }
 
 impl Flow {
@@ -66,117 +84,158 @@ impl Flow {
     pub fn ingress(&self) -> Option<(&NodeId, &Node)> {
         self.nodes.iter().next()
     }
-
-    /// Validates the flow structure (at least one node).
-    pub fn validate_structure(&self) -> Result<(), FlowValidationError> {
-        if self.is_empty() {
-            return Err(FlowValidationError::EmptyFlow);
-        }
-        Ok(())
-    }
-
-    /// Ensures all referenced components exist and support this flow kind.
-    pub fn validate_components<'a, F>(&self, mut resolver: F) -> Result<(), FlowValidationError>
-    where
-        F: FnMut(&ComponentId) -> Option<&'a ComponentManifest>,
-    {
-        self.validate_structure()?;
-        for (node_id, node) in &self.nodes {
-            if let Some(component_id) = &node.component {
-                let manifest = resolver(component_id).ok_or_else(|| {
-                    FlowValidationError::MissingComponent {
-                        node_id: node_id.clone(),
-                        component: component_id.clone(),
-                    }
-                })?;
-
-                if !manifest.supports_kind(self.kind) {
-                    return Err(FlowValidationError::UnsupportedComponent {
-                        node_id: node_id.clone(),
-                        component: component_id.clone(),
-                        flow_kind: self.kind,
-                    });
-                }
-            }
-        }
-        Ok(())
-    }
 }
 
-/// Flow node metadata. All semantics are opaque strings or documents.
+/// Flow node representation.
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct Node {
-    /// Component kind (opaque string interpreted by tooling/runtime).
-    pub kind: String,
-    /// Optional profile override for this node.
+    /// Node identifier.
+    pub id: NodeId,
+    /// Component binding referenced by the node.
+    pub component: ComponentRef,
+    /// Component input mapping configuration.
+    pub input: InputMapping,
+    /// Component output mapping configuration.
+    pub output: OutputMapping,
+    /// Routing behaviour after this node.
+    pub routing: Routing,
+    /// Optional telemetry hints for this node.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub telemetry: TelemetryHints,
+}
+
+/// Component reference within a flow.
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct ComponentRef {
+    /// Component identifier.
+    pub id: ComponentId,
+    /// Dependency pack alias when referencing external components.
     #[cfg_attr(
         feature = "serde",
         serde(default, skip_serializing_if = "Option::is_none")
     )]
-    pub profile: Option<String>,
-    /// Optional component binding identifier.
+    pub pack_alias: Option<String>,
+    /// Optional operation name within the component.
     #[cfg_attr(
         feature = "serde",
         serde(default, skip_serializing_if = "Option::is_none")
     )]
-    pub component: Option<ComponentId>,
-    /// Component-specific configuration blob.
-    #[cfg_attr(feature = "serde", serde(default))]
-    pub config: Value,
-    /// Opaque routing document interpreted by the component.
-    #[cfg_attr(feature = "serde", serde(default))]
-    pub routing: Value,
+    pub operation: Option<String>,
 }
 
-/// Validation errors produced by [`Flow::validate_components`].
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum FlowValidationError {
-    /// Flow has no nodes.
-    EmptyFlow,
-    /// Node references a component that is missing from the manifest set.
-    MissingComponent {
-        /// Offending node identifier.
-        node_id: NodeId,
-        /// Referenced component identifier.
-        component: ComponentId,
-    },
-    /// Component does not support the flow kind.
-    UnsupportedComponent {
-        /// Offending node identifier.
-        node_id: NodeId,
-        /// Referenced component identifier.
-        component: ComponentId,
-        /// Flow kind the node participates in.
-        flow_kind: FlowKind,
-    },
+/// Opaque component input mapping configuration.
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct InputMapping {
+    /// Mapping configuration (templates, expressions, etc.).
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub mapping: Value,
 }
 
-impl core::fmt::Display for FlowValidationError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            FlowValidationError::EmptyFlow => f.write_str("flows must declare at least one node"),
-            FlowValidationError::MissingComponent { node_id, component } => write!(
-                f,
-                "node `{}` references missing component `{}`",
-                node_id.as_str(),
-                component.as_str()
-            ),
-            FlowValidationError::UnsupportedComponent {
-                node_id,
-                component,
-                flow_kind,
-            } => write!(
-                f,
-                "component `{}` used by node `{}` does not support `{:?}` flows",
-                component.as_str(),
-                node_id.as_str(),
-                flow_kind
-            ),
+/// Opaque component output mapping configuration.
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct OutputMapping {
+    /// Mapping configuration (templates, expressions, etc.).
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub mapping: Value,
+}
+
+/// Optional authoring metadata for flows.
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct FlowMetadata {
+    /// Optional human-friendly title.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub title: Option<String>,
+    /// Optional human-friendly description.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub description: Option<String>,
+    /// Optional tags.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub tags: BTreeSet<String>,
+    /// Free-form metadata.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub extra: Value,
+}
+
+impl Default for FlowMetadata {
+    fn default() -> Self {
+        Self {
+            title: None,
+            description: None,
+            tags: BTreeSet::new(),
+            extra: Value::Null,
         }
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for FlowValidationError {}
+/// Routing behaviour for a node.
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub enum Routing {
+    /// Continue to the specified node.
+    Next {
+        /// Destination node identifier.
+        node_id: NodeId,
+    },
+    /// Branch based on status string -> node id.
+    Branch {
+        /// Mapping of status value to destination node.
+        #[cfg_attr(feature = "serde", serde(default))]
+        #[cfg_attr(
+            feature = "schemars",
+            schemars(with = "alloc::collections::BTreeMap<String, NodeId>")
+        )]
+        on_status: BTreeMap<String, NodeId>,
+        /// Default node when no status matches.
+        #[cfg_attr(
+            feature = "serde",
+            serde(default, skip_serializing_if = "Option::is_none")
+        )]
+        default: Option<NodeId>,
+    },
+    /// Flow terminates successfully.
+    End,
+    /// Reply to origin (Messaging/Http flows).
+    Reply,
+    /// Component- or runtime-specific routing.
+    Custom(Value),
+}
+
+/// Optional telemetry hints for a node.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct TelemetryHints {
+    /// Optional span name.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub span_name: Option<String>,
+    /// Attributes to attach to spans/logs.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub attributes: BTreeMap<String, String>,
+    /// Sampling hint (`high`, `normal`, `low`).
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub sampling: Option<String>,
+}
