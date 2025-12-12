@@ -110,6 +110,8 @@ The v1 flow/pack model now embeds flows inside `PackManifest` and publishes the 
 
 > `OtlpKeys` and `RunResult` schemas are emitted when the `otel-keys` and `time` features are enabled respectively; both keep their canonical IDs.
 
+`ComponentManifest` includes optional development-time flows under `dev_flows`, mapping flow identifiers to FlowIR-as-JSON documents. Authoring tools (for example, `greentic-dev` and `greentic-component`) can embed editable graphs here, while runtimes and deployers may ignore the section safely.
+
 ## Generating locally
 
 ```bash

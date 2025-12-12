@@ -145,6 +145,7 @@ fn component_manifest_defaults_extend() {
         }],
         config_schema: None,
         resources: ResourceHints::default(),
+        dev_flows: BTreeMap::new(),
     };
 
     let default = manifest.select_profile(None).expect("default");

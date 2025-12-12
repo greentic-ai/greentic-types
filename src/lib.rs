@@ -10,6 +10,10 @@
 //! schema metadata. Use the strongly-typed identifiers to keep flows, packs, and components
 //! consistent across repositories and to benefit from serde + schema validation automatically.
 //!
+//! Component manifests now support optional development-time flows in `dev_flows`. These are JSON
+//! FlowIR structures used only during authoring (`greentic-dev`, `greentic-component`). Runtimes
+//! may safely ignore this field.
+//!
 //! ## Tenant contexts
 //! ```
 //! use greentic_types::{EnvId, TenantCtx, TenantId};
@@ -93,11 +97,11 @@ pub use capabilities::{
 #[cfg(feature = "std")]
 pub use cbor::{CborError, decode_pack_manifest, encode_pack_manifest};
 pub use component::{
-    ComponentCapabilities, ComponentConfigurators, ComponentManifest, ComponentOperation,
-    ComponentProfileError, ComponentProfiles, EnvCapabilities, EventsCapabilities,
-    FilesystemCapabilities, FilesystemMode, FilesystemMount, HostCapabilities, HttpCapabilities,
-    IaCCapabilities, MessagingCapabilities, ResourceHints, SecretsCapabilities, StateCapabilities,
-    TelemetryCapabilities, TelemetryScope, WasiCapabilities,
+    ComponentCapabilities, ComponentConfigurators, ComponentDevFlow, ComponentManifest,
+    ComponentOperation, ComponentProfileError, ComponentProfiles, EnvCapabilities,
+    EventsCapabilities, FilesystemCapabilities, FilesystemMode, FilesystemMount, HostCapabilities,
+    HttpCapabilities, IaCCapabilities, MessagingCapabilities, ResourceHints, SecretsCapabilities,
+    StateCapabilities, TelemetryCapabilities, TelemetryScope, WasiCapabilities,
 };
 pub use context::{Cloud, DeploymentCtx, Platform};
 pub use deployment::{

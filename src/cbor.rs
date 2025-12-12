@@ -9,7 +9,7 @@ use indexmap::IndexMap;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 
-use crate::component::{ComponentOperation, ResourceHints};
+use crate::component::{ComponentDevFlow, ComponentOperation, ResourceHints};
 use crate::flow::{
     ComponentRef, Flow, FlowHasher, FlowKind, FlowMetadata, InputMapping, Node, OutputMapping,
     Routing, TelemetryHints,
@@ -94,6 +94,8 @@ struct EncodedComponent {
     operations: Vec<ComponentOperation>,
     config_schema: Option<serde_json::Value>,
     resources: ResourceHints,
+    #[serde(default)]
+    dev_flows: BTreeMap<FlowId, ComponentDevFlow>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -202,6 +204,7 @@ impl TryFrom<&PackManifest> for EncodedPackManifest {
                     operations: component.operations.clone(),
                     config_schema: component.config_schema.clone(),
                     resources: component.resources.clone(),
+                    dev_flows: component.dev_flows.clone(),
                 })
             })
             .collect::<Result<Vec<_>, CborError>>()?;
@@ -439,6 +442,7 @@ impl TryFrom<EncodedPackManifest> for PackManifest {
                     operations: component.operations,
                     config_schema: component.config_schema,
                     resources: component.resources,
+                    dev_flows: component.dev_flows,
                 })
             })
             .collect::<Result<Vec<_>, CborError>>()?;

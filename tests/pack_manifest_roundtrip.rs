@@ -105,6 +105,7 @@ fn sample_component(id: &str, supports: Vec<FlowKind>) -> ComponentManifest {
         }],
         config_schema: None,
         resources: ResourceHints::default(),
+        dev_flows: BTreeMap::new(),
     }
 }
 
@@ -236,4 +237,65 @@ fn deployment_plan_roundtrip_json() {
     let roundtrip = roundtrip_json(&plan);
     assert_eq!(roundtrip.channels.len(), 1);
     assert_eq!(roundtrip.secrets[0].key, "API_KEY");
+}
+
+#[test]
+fn component_manifest_deserializes_without_dev_flows() {
+    let manifest = sample_component("component.devless", vec![FlowKind::Messaging]);
+    let json = serde_json::to_string_pretty(&manifest).expect("serialize");
+    assert!(
+        !json.contains("dev_flows"),
+        "empty dev_flows should be skipped"
+    );
+
+    let decoded: ComponentManifest = serde_json::from_str(&json).expect("deserialize");
+    assert!(decoded.dev_flows.is_empty());
+}
+
+#[test]
+fn component_manifest_with_dev_flows_roundtrips() {
+    let manifest_json = serde_json::json!({
+        "id": "component.devflow",
+        "version": "1.0.0",
+        "supports": ["messaging"],
+        "world": "test:world@1.0.0",
+        "profiles": {
+            "default": "default",
+            "supported": ["default"]
+        },
+        "capabilities": {
+            "wasi": {},
+            "host": {}
+        },
+        "operations": [
+            {
+                "name": "handle",
+                "input_schema": null,
+                "output_schema": null
+            }
+        ],
+        "resources": {},
+        "dev_flows": {
+            "default": {
+                "graph": {
+                    "schema_version": "flow-ir-1"
+                }
+            }
+        }
+    });
+
+    let decoded: ComponentManifest =
+        serde_json::from_value(manifest_json).expect("manifest with dev_flows");
+    let flow = decoded
+        .dev_flows
+        .get(&FlowId::new("default").unwrap())
+        .expect("dev flow present");
+    assert_eq!(flow.format, "flow-ir-json");
+    assert_eq!(
+        flow.graph,
+        serde_json::json!({"schema_version": "flow-ir-1"})
+    );
+
+    let roundtrip = roundtrip_json(&decoded);
+    assert_eq!(roundtrip.dev_flows.len(), 1);
 }

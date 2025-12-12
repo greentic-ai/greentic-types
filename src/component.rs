@@ -1,5 +1,6 @@
 //! Component manifest structures with generic capability declarations.
 
+use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -12,6 +13,25 @@ use crate::{ComponentId, FlowId};
 use schemars::JsonSchema;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+
+/// Development-time flow embedded directly in a component manifest.
+///
+/// These flows are consumed by tooling such as `greentic-dev` during authoring. They are not
+/// required for deployment or runtime execution and may be safely ignored by hosts and runners.
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct ComponentDevFlow {
+    /// Flow representation format. Currently only `flow-ir-json` is supported.
+    #[cfg_attr(feature = "serde", serde(default = "dev_flow_default_format"))]
+    pub format: String,
+    /// FlowIR JSON graph for this flow.
+    pub graph: serde_json::Value,
+}
+
+fn dev_flow_default_format() -> String {
+    "flow-ir-json".to_owned()
+}
 
 /// Component metadata describing capabilities and supported flows.
 #[derive(Clone, Debug, PartialEq)]
@@ -53,6 +73,14 @@ pub struct ComponentManifest {
     /// Resource usage hints for deployers/schedulers.
     #[cfg_attr(feature = "serde", serde(default))]
     pub resources: ResourceHints,
+    /// Development-time flows used for authoring only. This field is optional and ignored by
+    /// runtime systems. Tools may store FlowIR-as-JSON values here to allow editing flows without
+    /// sidecar files.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "BTreeMap::is_empty")
+    )]
+    pub dev_flows: BTreeMap<FlowId, ComponentDevFlow>,
 }
 
 impl ComponentManifest {
