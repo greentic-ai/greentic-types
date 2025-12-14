@@ -357,19 +357,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "greentic-secrets-spec"
-version = "0.4.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20a569a0c0e11151b093a7d8ebb36f0704bd4f96558272020900ebc745120970"
-dependencies = [
- "async-trait",
- "schemars",
- "serde",
- "thiserror",
- "time",
-]
-
-[[package]]
 name = "greentic-telemetry"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -394,13 +381,12 @@ dependencies = [
 
 [[package]]
 name = "greentic-types"
-version = "0.4.16"
+version = "0.4.17"
 dependencies = [
  "anyhow",
  "chrono",
  "ciborium",
  "fnv",
- "greentic-secrets-spec",
  "greentic-telemetry",
  "greentic-types-macros",
  "indexmap",
@@ -422,7 +408,7 @@ dependencies = [
 
 [[package]]
 name = "greentic-types-macros"
-version = "0.4.16"
+version = "0.4.17"
 dependencies = [
  "proc-macro2",
  "quote",

@@ -1,7 +1,8 @@
-//! Shared secret requirement primitives re-exported from `greentic-secrets-spec`.
+//! Canonical secret requirement primitives shared across Greentic crates.
+//! All repos must use these helpers; local re-implementation is forbidden.
 
-use crate::{GResult, validate_identifier};
-use alloc::{string::String, vec::Vec};
+use crate::{ErrorCode, GResult, GreenticError};
+use alloc::{format, string::String, vec::Vec};
 use core::ops::Deref;
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
@@ -10,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 /// Canonical secret identifier used across manifests and bindings.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct SecretKey(String);
@@ -19,14 +20,63 @@ impl SecretKey {
     /// Constructs a secret key and validates the identifier format.
     pub fn new(key: impl Into<String>) -> GResult<Self> {
         let key = key.into();
-        validate_identifier(&key, "secret key")?;
-        Ok(Self(key))
+        Self::parse(&key).map_err(|err| {
+            GreenticError::new(
+                ErrorCode::InvalidInput,
+                format!("invalid secret key: {err}"),
+            )
+        })
     }
 
     /// Returns the key as a string slice.
     pub fn as_str(&self) -> &str {
         &self.0
     }
+
+    /// Parses and validates a secret key string.
+    ///
+    /// Validation rules:
+    /// - must be non-empty
+    /// - allowed characters: ASCII `a-zA-Z0-9._-/`
+    /// - must not start with `/`
+    /// - must not contain a `..` path segment
+    pub fn parse(value: &str) -> Result<Self, SecretKeyError> {
+        if value.is_empty() {
+            return Err(SecretKeyError::Empty);
+        }
+        if value.starts_with('/') {
+            return Err(SecretKeyError::LeadingSlash);
+        }
+        for c in value.chars() {
+            if !(c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-' | '/')) {
+                return Err(SecretKeyError::InvalidChar { c });
+            }
+        }
+        if value.split('/').any(|segment| segment == "..") {
+            return Err(SecretKeyError::DotDotSegment);
+        }
+        Ok(Self(value.to_owned()))
+    }
+}
+
+/// Validation errors produced by [`SecretKey::parse`].
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+pub enum SecretKeyError {
+    /// Input was empty.
+    #[error("secret key must not be empty")]
+    Empty,
+    /// Input started with `/`.
+    #[error("secret key must not start with '/'")]
+    LeadingSlash,
+    /// Input contained a `..` path segment.
+    #[error("secret key must not contain '..' segments")]
+    DotDotSegment,
+    /// Input contained a disallowed character.
+    #[error("secret key contains invalid character '{c}'")]
+    InvalidChar {
+        /// The offending character.
+        c: char,
+    },
 }
 
 impl Deref for SecretKey {
@@ -55,10 +105,48 @@ impl From<SecretKey> for String {
     }
 }
 
-/// Canonical secret scope shared with the secrets spec.
-pub type SecretScope = greentic_secrets_spec::Scope;
-/// Canonical secret format shared with the secrets spec.
-pub type SecretFormat = greentic_secrets_spec::ContentType;
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for SecretKey {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = String::deserialize(deserializer)?;
+        SecretKey::parse(&value).map_err(serde::de::Error::custom)
+    }
+}
+
+/// Canonical secret scope (environment, tenant, team).
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct SecretScope {
+    /// Environment identifier (e.g., `dev`, `prod`).
+    pub env: String,
+    /// Tenant identifier within the environment.
+    pub tenant: String,
+    /// Optional team for finer-grained isolation.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub team: Option<String>,
+}
+
+/// Supported secret content formats.
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub enum SecretFormat {
+    /// Arbitrary bytes.
+    Bytes,
+    /// UTF-8 text.
+    Text,
+    /// JSON document.
+    Json,
+}
 
 /// Structured secret requirement used in capabilities, bindings, and deployment plans.
 #[non_exhaustive]

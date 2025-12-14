@@ -2,7 +2,7 @@
 members = ["greentic-types-macros"]
 
 [workspace.package]
-version = "0.4.16"
+version = "0.4.17"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/greentic-ai/greentic-types"
@@ -26,10 +26,10 @@ rust-version = "1.85"
 [features]
 default = ["std", "serde", "time", "otel-keys"]
 std = []
-serde = ["dep:serde", "dep:serde_with", "greentic-secrets-spec/serde"]
+serde = ["dep:serde", "dep:serde_with"]
 time = ["dep:time"]
 uuid = ["dep:uuid"]
-schemars = ["dep:schemars", "serde", "greentic-secrets-spec/schema"]
+schemars = ["dep:schemars", "serde"]
 schema = ["schemars", "dep:anyhow", "std"]
 otel-keys = []
 telemetry-autoinit = [
@@ -61,7 +61,6 @@ tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"], optiona
 tracing = { version = "0.1", optional = true }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["registry", "std"], optional = true }
 ciborium = "0.2"
-greentic-secrets-spec = { version = "0.4.1", default-features = true, features = ["serde"] }
 
 greentic-types-macros = { path = "greentic-types-macros", version = "0.4", optional = true }
 
