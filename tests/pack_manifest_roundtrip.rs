@@ -213,7 +213,13 @@ fn deployment_plan_roundtrip_json() {
     {
       "key": "API_KEY",
       "required": true,
-      "scope": "tenant"
+      "description": "primary api key",
+      "scope": {
+        "env": "staging",
+        "tenant": "tenant-a",
+        "team": null
+      },
+      "format": "text"
     }
   ],
   "oauth": [
@@ -236,7 +242,8 @@ fn deployment_plan_roundtrip_json() {
     let plan: DeploymentPlan = serde_json::from_str(doc).expect("valid json");
     let roundtrip = roundtrip_json(&plan);
     assert_eq!(roundtrip.channels.len(), 1);
-    assert_eq!(roundtrip.secrets[0].key, "API_KEY");
+    let first_secret = serde_json::to_value(&roundtrip.secrets[0]).expect("serialize secret");
+    assert_eq!(first_secret["key"], "API_KEY");
 }
 
 #[test]

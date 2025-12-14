@@ -106,7 +106,7 @@ pub use component::{
 pub use context::{Cloud, DeploymentCtx, Platform};
 pub use deployment::{
     ChannelPlan, DeploymentPlan, MessagingPlan, MessagingSubjectPlan, OAuthPlan, RunnerPlan,
-    SecretPlan, TelemetryPlan,
+    TelemetryPlan,
 };
 pub use distributor::{
     ArtifactLocation, CacheInfo, ComponentDigest, ComponentStatus, DistributorEnvironmentId,
@@ -121,6 +121,7 @@ pub use flow::{
     ComponentRef as FlowComponentRef, Flow, FlowKind, FlowMetadata, InputMapping, Node,
     OutputMapping, Routing, TelemetryHints,
 };
+pub use greentic_secrets_spec::{SecretFormat, SecretKey, SecretRequirement, SecretScope};
 pub use messaging::{Attachment, ChannelMessageEnvelope, MessageMetadata};
 pub use outcome::Outcome;
 pub use pack::{PackRef, Signature, SignatureAlgorithm};

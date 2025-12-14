@@ -3,6 +3,7 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
+use crate::SecretRequirement;
 use semver::Version;
 
 #[cfg(feature = "schemars")]
@@ -39,7 +40,7 @@ pub struct DeploymentPlan {
     /// Channel entrypoints into the pack.
     pub channels: Vec<ChannelPlan>,
     /// Secrets required to operate the pack.
-    pub secrets: Vec<SecretPlan>,
+    pub secrets: Vec<SecretRequirement>,
     /// OAuth client requirements.
     pub oauth: Vec<OAuthPlan>,
     /// Telemetry guidance.
@@ -111,19 +112,6 @@ pub struct ChannelPlan {
     /// Connector-specific configuration.
     #[cfg_attr(feature = "serde", serde(default))]
     pub config: Value,
-}
-
-/// Secret requirement entry.
-#[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
-pub struct SecretPlan {
-    /// Logical secret key.
-    pub key: String,
-    /// Whether the secret must exist.
-    pub required: bool,
-    /// Scope identifier (tenant/environment/etc.).
-    pub scope: String,
 }
 
 /// OAuth client requirement entry.

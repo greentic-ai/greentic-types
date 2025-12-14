@@ -4,9 +4,9 @@ use greentic_types::{
     AllowList, Capabilities, ComponentId, ErrorCode, FsCaps, GitProviderRef, GreenticError,
     HashDigest, HttpCaps, Impersonation, InvocationDeadline, KvCaps, Limits, NetCaps,
     NetworkPolicy, NodeFailure, NodeId, NodeStatus, NodeSummary, Outcome, PackId, PackRef,
-    PolicyDecision, PolicyDecisionStatus, RedactionPath, RunStatus, ScannerRef, SecretsCaps,
-    SemverReq, SessionCursor, SessionKey, Signature, SignatureAlgorithm, SpanContext, StateKey,
-    StatePath, TelemetrySpec, TenantContext, TenantCtx, TenantIdentity, ToolsCaps,
+    PolicyDecision, PolicyDecisionStatus, RedactionPath, RunStatus, ScannerRef, SecretRequirement,
+    SecretsCaps, SemverReq, SessionCursor, SessionKey, Signature, SignatureAlgorithm, SpanContext,
+    StateKey, StatePath, TelemetrySpec, TenantContext, TenantCtx, TenantIdentity, ToolsCaps,
     TranscriptOffset,
 };
 #[cfg(feature = "time")]
@@ -274,7 +274,15 @@ fn capabilities_roundtrip() {
     caps.http = Some(http);
 
     let mut secrets = SecretsCaps::new();
-    secrets.required.push("PRIMARY_TOKEN".into());
+    let secret_req: SecretRequirement = serde_json::from_value(serde_json::json!({
+        "key": "PRIMARY_TOKEN",
+        "required": true,
+        "description": "primary token",
+        "scope": { "env": "dev", "tenant": "tenant-a", "team": null },
+        "format": "text"
+    }))
+    .expect("secret requirement");
+    secrets.required.push(secret_req);
     caps.secrets = Some(secrets);
 
     let mut kv = KvCaps::new();

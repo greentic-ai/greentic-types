@@ -2,7 +2,7 @@
 
 use alloc::{collections::BTreeMap, string::String, vec::Vec};
 
-use crate::{AllowList, NetworkPolicy};
+use crate::{AllowList, NetworkPolicy, SecretRequirement};
 
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
@@ -108,7 +108,7 @@ pub struct SecretsCaps {
         feature = "serde",
         serde(default, skip_serializing_if = "Vec::is_empty")
     )]
-    pub required: Vec<String>,
+    pub required: Vec<SecretRequirement>,
 }
 
 impl SecretsCaps {

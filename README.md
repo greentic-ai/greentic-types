@@ -137,6 +137,8 @@ let ctx = TenantCtx::new("prod".parse().unwrap(), "acme".parse().unwrap())
 Read [MODELS.md](MODELS.md) for the guiding principles: IDs are opaque strings, capabilities describe host/WASI interaction, and bindings stay outside these documents.
 
 ## Harmonised model
+- **SecretRequirement (from `greentic-secrets-spec`)** – canonical secret metadata (key/scope/format/description/schema/examples) reused across capabilities, bindings, and deployment plans. Downstream crates must depend on the spec crate and must not redefine secrets requirement structs.
+- **Environment & deployment identifiers** *(do not duplicate)* – `EnvId` is the single environment identifier on every invocation via `TenantCtx.env`; `EnvironmentRef` appears on rollout/registry records and should correspond to an `EnvId`-named environment; `DeploymentCtx` (with `Cloud` + `Platform`) is the canonical “where am I running” descriptor; `ConnectionKind` is the online vs. offline/air-gapped flag. Downstream crates such as `greentic-config` must reference these instead of redefining environment/location/connectivity enums.
 - **TenantCtx & TenantIdentity** – shared across runner, connectors, and state/session stores; keeps legacy (`tenant`, `team`, `user`) and next-gen (`tenant_id`, `team_id`, `user_id`, `impersonation`) fields aligned.
 - **SessionKey/SessionCursor** – referenced by session routers and state stores.
 - **StateKey/StatePath** – JSON pointer compatible navigation for persisted state.

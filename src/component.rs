@@ -7,7 +7,7 @@ use alloc::vec::Vec;
 use semver::Version;
 
 use crate::flow::FlowKind;
-use crate::{ComponentId, FlowId};
+use crate::{ComponentId, FlowId, SecretRequirement};
 
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
@@ -350,7 +350,7 @@ pub struct HostCapabilities {
 pub struct SecretsCapabilities {
     /// Secret identifiers required at runtime.
     #[cfg_attr(feature = "serde", serde(default))]
-    pub required: Vec<String>,
+    pub required: Vec<SecretRequirement>,
 }
 
 /// State surface declaration.

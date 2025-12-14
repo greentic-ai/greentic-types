@@ -8,6 +8,7 @@ extern crate alloc;
 /// Shared binding hints emitted by pack generators and consumed by the runner host.
 pub mod hints {
     use alloc::{string::String, vec::Vec};
+    use greentic_secrets_spec::SecretRequirement;
 
     #[cfg(feature = "schemars")]
     use schemars::JsonSchema;
@@ -52,7 +53,7 @@ pub mod hints {
     pub struct SecretsHints {
         /// Secrets that flows declare as required. The host must supply these keys.
         #[cfg_attr(feature = "serde", serde(default))]
-        pub required: Vec<String>,
+        pub required: Vec<SecretRequirement>,
     }
 
     #[derive(Debug, Clone, Default, PartialEq, Eq)]
