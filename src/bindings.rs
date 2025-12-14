@@ -7,8 +7,8 @@ extern crate alloc;
 
 /// Shared binding hints emitted by pack generators and consumed by the runner host.
 pub mod hints {
+    use crate::SecretRequirement;
     use alloc::{string::String, vec::Vec};
-    use greentic_secrets_spec::SecretRequirement;
 
     #[cfg(feature = "schemars")]
     use schemars::JsonSchema;

@@ -82,6 +82,7 @@ pub mod policy;
 pub mod run;
 #[cfg(all(feature = "schemars", feature = "std"))]
 pub mod schema;
+pub mod secrets;
 pub mod session;
 pub mod state;
 pub mod telemetry;
@@ -121,7 +122,6 @@ pub use flow::{
     ComponentRef as FlowComponentRef, Flow, FlowKind, FlowMetadata, InputMapping, Node,
     OutputMapping, Routing, TelemetryHints,
 };
-pub use greentic_secrets_spec::{SecretFormat, SecretKey, SecretRequirement, SecretScope};
 pub use messaging::{Attachment, ChannelMessageEnvelope, MessageMetadata};
 pub use outcome::Outcome;
 pub use pack::{PackRef, Signature, SignatureAlgorithm};
@@ -132,6 +132,7 @@ pub use policy::{AllowList, NetworkPolicy, PolicyDecision, PolicyDecisionStatus,
 #[cfg(feature = "time")]
 pub use run::RunResult;
 pub use run::{NodeFailure, NodeStatus, NodeSummary, RunStatus, TranscriptOffset};
+pub use secrets::{SecretFormat, SecretKey, SecretRequirement, SecretScope};
 pub use session::canonical_session_key;
 pub use session::{SessionCursor, SessionData, SessionKey};
 pub use state::{StateKey, StatePath};
