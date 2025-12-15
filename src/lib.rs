@@ -111,7 +111,7 @@ pub use deployment::{
 };
 pub use distributor::{
     ArtifactLocation, CacheInfo, ComponentDigest, ComponentStatus, DistributorEnvironmentId,
-    ResolveComponentRequest, ResolveComponentResponse, SignatureSummary,
+    PackStatusResponseV2, ResolveComponentRequest, ResolveComponentResponse, SignatureSummary,
 };
 pub use error::{ErrorCode, GResult, GreenticError};
 pub use events::{EventEnvelope, EventId, EventMetadata};

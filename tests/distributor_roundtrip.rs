@@ -48,6 +48,7 @@ fn resolve_component_response_roundtrip() {
             last_used_utc: "2025-01-01T00:00:00Z".into(),
             last_refreshed_utc: "2025-01-01T00:00:00Z".into(),
         },
+        secret_requirements: None,
     };
 
     let json = serde_json::to_string_pretty(&resp).unwrap();

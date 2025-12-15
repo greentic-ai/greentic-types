@@ -3,6 +3,7 @@
 //! These mirror the `greentic:distributor-api@1.0.0` WIT shapes.
 
 use alloc::string::String;
+use alloc::vec::Vec;
 
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
@@ -10,7 +11,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::TenantCtx;
+use crate::{SecretRequirement, TenantCtx};
 
 /// Identifier for a distributor environment.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -177,4 +178,25 @@ pub struct ResolveComponentResponse {
     pub signature: SignatureSummary,
     /// Cache metadata.
     pub cache: CacheInfo,
+    /// Declared secret requirements for the pack/component.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub secret_requirements: Option<Vec<SecretRequirement>>,
+}
+
+/// Structured pack status response (v2) including optional secret requirements.
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct PackStatusResponseV2 {
+    /// Opaque status payload returned by the distributor.
+    pub status: Value,
+    /// Declared secret requirements for the pack.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub secret_requirements: Option<Vec<SecretRequirement>>,
 }
