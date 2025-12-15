@@ -5,12 +5,19 @@ use alloc::vec::Vec;
 
 use semver::Version;
 
-use crate::{ComponentManifest, Flow, FlowId, FlowKind, PackId, SemverReq, Signature};
+use crate::{
+    ComponentManifest, Flow, FlowId, FlowKind, PackId, SecretRequirement, SemverReq, Signature,
+};
 
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+
+#[cfg(feature = "schemars")]
+fn empty_secret_requirements() -> Vec<SecretRequirement> {
+    Vec::new()
+}
 
 /// Hint describing the primary purpose of a pack.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -67,6 +74,13 @@ pub struct PackManifest {
     /// Capability declarations for the pack.
     #[cfg_attr(feature = "serde", serde(default))]
     pub capabilities: Vec<ComponentCapability>,
+    /// Pack-level secret requirements.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
+    #[cfg_attr(feature = "schemars", schemars(default = "empty_secret_requirements"))]
+    pub secret_requirements: Vec<SecretRequirement>,
     /// Pack signatures.
     #[cfg_attr(feature = "serde", serde(default))]
     pub signatures: PackSignatures,

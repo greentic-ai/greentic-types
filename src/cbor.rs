@@ -19,7 +19,7 @@ use crate::pack_manifest::{
 };
 use crate::{
     ComponentCapabilities, ComponentConfigurators, ComponentId, ComponentManifest,
-    ComponentProfiles, FlowId, GreenticError, NodeId, PackId, SemverReq,
+    ComponentProfiles, FlowId, GreenticError, NodeId, PackId, SecretRequirement, SemverReq,
 };
 
 /// Errors produced while encoding or decoding CBOR manifests.
@@ -79,6 +79,8 @@ struct EncodedPackManifest {
     flows: Vec<EncodedFlowEntry>,
     dependencies: Vec<EncodedDependency>,
     capabilities: Vec<EncodedCapability>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    secret_requirements: Vec<SecretRequirement>,
     signatures: PackSignatures,
 }
 
@@ -284,6 +286,7 @@ impl TryFrom<&PackManifest> for EncodedPackManifest {
             flows,
             dependencies,
             capabilities,
+            secret_requirements: manifest.secret_requirements.clone(),
             signatures: manifest.signatures.clone(),
         })
     }
@@ -532,6 +535,7 @@ impl TryFrom<EncodedPackManifest> for PackManifest {
             flows,
             dependencies,
             capabilities,
+            secret_requirements: encoded.secret_requirements,
             signatures: encoded.signatures,
         })
     }

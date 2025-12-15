@@ -6,8 +6,8 @@ use greentic_types::{
     ComponentCapabilities, ComponentCapability, ComponentManifest, ComponentOperation,
     ComponentProfiles, DeploymentPlan, Flow, FlowComponentRef, FlowId, FlowKind, FlowMetadata,
     InputMapping, Node, OutputMapping, PackDependency, PackFlowEntry, PackId, PackKind,
-    PackManifest, PackSignatures, ResourceHints, Routing, TelemetryHints, decode_pack_manifest,
-    encode_pack_manifest,
+    PackManifest, PackSignatures, ResourceHints, Routing, SecretFormat, SecretRequirement,
+    SecretScope, TelemetryHints, decode_pack_manifest, encode_pack_manifest,
 };
 use indexmap::IndexMap;
 use semver::Version;
@@ -109,6 +109,21 @@ fn sample_component(id: &str, supports: Vec<FlowKind>) -> ComponentManifest {
     }
 }
 
+fn sample_secret_requirement() -> SecretRequirement {
+    let mut requirement = SecretRequirement::default();
+    requirement.key = "TEST_API_KEY".into();
+    requirement.required = true;
+    requirement.description = Some("API token for integration flows".into());
+    requirement.scope = Some(SecretScope {
+        env: "staging".into(),
+        tenant: "tenant-a".into(),
+        team: None,
+    });
+    requirement.format = Some(SecretFormat::Text);
+    requirement.examples = vec!["sk-test-123".into()];
+    requirement
+}
+
 fn sample_pack_manifest() -> PackManifest {
     let flow = sample_flow();
     PackManifest {
@@ -139,6 +154,7 @@ fn sample_pack_manifest() -> PackManifest {
             name: "messaging".into(),
             description: Some("messaging surface".into()),
         }],
+        secret_requirements: vec![sample_secret_requirement()],
         signatures: PackSignatures { signatures: vec![] },
     }
 }

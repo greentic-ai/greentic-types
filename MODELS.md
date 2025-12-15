@@ -16,9 +16,10 @@ every domain. The models exported by `greentic-types` follow three simple rules:
 
 3. **Packs and flows never encode bindings or connectors.**  
    `Flow` holds a DAG of nodes with explicit routing (`Routing` enum) and opaque config/mapping
-   blobs. `PackManifest` embeds flows directly alongside component manifests, dependencies, and
-   capabilities, but no WASI paths, secrets, or tenant-specific wiring. Bindings are generated
-   later by hosts like `greentic-pack` and `greentic-runner`.
+   blobs. `PackManifest` embeds flows directly alongside component manifests, dependencies,
+   capabilities, and declarative `secret_requirements`, but no WASI paths, secret values, or
+   tenant-specific wiring. Bindings are generated later by hosts like `greentic-pack` and
+   `greentic-runner`.
 
 This separation lets humans and small LLMs edit `.ygtc` and `.gtpack` files confidently while hosts
 handle sandboxing, policies, and domain-specific behaviour elsewhere.
