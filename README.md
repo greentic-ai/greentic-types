@@ -190,6 +190,10 @@ ln -s ../../ci/local_check.sh .git/hooks/pre-push
 
 CI (see `.github/workflows/publish.yml`) enforces the same gates on push/PR. Legacy `v*` tags still trigger the workflow alongside per-crate tags.
 
+### Dependabot auto-merge settings
+- Enable GitHub’s `Allow auto-merge` on the repository.
+- Keep branch protection required checks configured as needed; auto-merge only proceeds after they pass.
+
 ## Maintenance notes
 - All public structs derive `schemars::JsonSchema` when the feature is enabled; integration tests assert schema registration and serde round-trips.
 - `GResult<T>` aliases `Result<T, GreenticError>` for consistent error propagation.
