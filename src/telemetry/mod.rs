@@ -9,16 +9,10 @@ pub use keys::OtlpKeys;
 pub use span_context::SpanContext;
 
 #[cfg(feature = "telemetry-autoinit")]
-use alloc::{boxed::Box, vec::Vec};
-#[cfg(feature = "telemetry-autoinit")]
 use greentic_telemetry::set_current_telemetry_ctx;
-#[cfg(feature = "telemetry-autoinit")]
-use tracing_subscriber::{Registry, layer::Layer};
 
 #[cfg(feature = "telemetry-autoinit")]
-pub use greentic_telemetry::init::TelemetryError;
-#[cfg(feature = "telemetry-autoinit")]
-pub use greentic_telemetry::{OtlpConfig, TelemetryCtx, init_otlp, layer_from_task_local};
+pub use greentic_telemetry::{TelemetryConfig, TelemetryCtx, init_telemetry_auto};
 #[cfg(feature = "telemetry-autoinit")]
 pub use greentic_types_macros::main;
 #[cfg(feature = "telemetry-autoinit")]
@@ -26,22 +20,11 @@ pub use greentic_types_macros::main;
 pub use tokio::main as __tokio_main;
 
 #[cfg(feature = "telemetry-autoinit")]
-/// Installs the default Greentic telemetry stack using OTLP + task-local context injection.
-pub fn install_telemetry(service_name: &str) -> Result<(), TelemetryError> {
-    let endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT")
-        .unwrap_or_else(|_| "http://localhost:4317".into());
-
-    let layers: Vec<Box<dyn Layer<Registry> + Send + Sync + 'static>> =
-        vec![Box::new(layer_from_task_local())];
-
-    init_otlp(
-        OtlpConfig {
-            service_name: service_name.to_string(),
-            endpoint: Some(endpoint),
-            sampling_rate: None,
-        },
-        layers,
-    )
+/// Installs the default Greentic telemetry stack using greentic-telemetry's auto configuration.
+pub fn install_telemetry(service_name: &str) -> anyhow::Result<()> {
+    init_telemetry_auto(TelemetryConfig {
+        service_name: service_name.to_string(),
+    })
 }
 
 #[cfg(feature = "telemetry-autoinit")]
