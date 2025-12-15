@@ -358,9 +358,9 @@ dependencies = [
 
 [[package]]
 name = "greentic-telemetry"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdc42bbd2ee9727d934e6a4df296355fb9defd475ebd6de8ff89cd26d70d79b7"
+checksum = "c467daab41db901f27deb70497fde3721d439241438ca56856daa5f422d4db48"
 dependencies = [
  "anyhow",
  "atty",
