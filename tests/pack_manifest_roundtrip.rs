@@ -3,11 +3,11 @@
 use std::collections::BTreeMap;
 
 use greentic_types::{
-    ComponentCapabilities, ComponentCapability, ComponentManifest, ComponentOperation,
-    ComponentProfiles, DeploymentPlan, Flow, FlowComponentRef, FlowId, FlowKind, FlowMetadata,
-    InputMapping, Node, OutputMapping, PackDependency, PackFlowEntry, PackId, PackKind,
-    PackManifest, PackSignatures, ResourceHints, Routing, SecretFormat, SecretRequirement,
-    SecretScope, TelemetryHints, decode_pack_manifest, encode_pack_manifest,
+    BootstrapSpec, ComponentCapabilities, ComponentCapability, ComponentManifest,
+    ComponentOperation, ComponentProfiles, DeploymentPlan, Flow, FlowComponentRef, FlowId,
+    FlowKind, FlowMetadata, InputMapping, Node, OutputMapping, PackDependency, PackFlowEntry,
+    PackId, PackKind, PackManifest, PackSignatures, ResourceHints, Routing, SecretFormat,
+    SecretRequirement, SecretScope, TelemetryHints, decode_pack_manifest, encode_pack_manifest,
 };
 use indexmap::IndexMap;
 use semver::Version;
@@ -156,6 +156,7 @@ fn sample_pack_manifest() -> PackManifest {
         }],
         secret_requirements: vec![sample_secret_requirement()],
         signatures: PackSignatures { signatures: vec![] },
+        bootstrap: None,
     }
 }
 
@@ -172,6 +173,11 @@ where
 #[test]
 fn pack_manifest_roundtrip_json_and_cbor() {
     let manifest = sample_pack_manifest();
+    let json_value = serde_json::to_value(&manifest).expect("serialize");
+    assert!(
+        json_value.get("bootstrap").is_none(),
+        "bootstrap should be omitted when absent"
+    );
     let json_roundtrip = roundtrip_json(&manifest);
     assert_eq!(json_roundtrip, manifest);
 
@@ -180,12 +186,92 @@ fn pack_manifest_roundtrip_json_and_cbor() {
     assert_eq!(decoded, manifest);
 }
 
+fn manifest_with_bootstrap() -> PackManifest {
+    let mut manifest = sample_pack_manifest();
+    manifest.pack_id = PackId::new("greentic.platform.pack").unwrap();
+    manifest.version = Version::parse("0.4.0").unwrap();
+    manifest.publisher = "greentic".into();
+    manifest.bootstrap = Some(BootstrapSpec {
+        install_flow: Some("platform_install".into()),
+        upgrade_flow: Some("platform_upgrade".into()),
+        installer_component: Some("installer".into()),
+    });
+    manifest
+}
+
+#[test]
+fn pack_manifest_roundtrip_with_bootstrap_json_and_cbor() {
+    let manifest = manifest_with_bootstrap();
+    let json_roundtrip = roundtrip_json(&manifest);
+    assert_eq!(json_roundtrip.bootstrap, manifest.bootstrap);
+
+    let bytes = encode_pack_manifest(&manifest).expect("encode");
+    let decoded = decode_pack_manifest(&bytes).expect("decode");
+    assert_eq!(decoded.bootstrap, manifest.bootstrap);
+}
+
 #[test]
 fn pack_manifest_cbor_encoding_is_deterministic() {
     let manifest = sample_pack_manifest();
     let first = encode_pack_manifest(&manifest).expect("encode");
     let second = encode_pack_manifest(&manifest).expect("encode");
     assert_eq!(first, second);
+}
+
+#[test]
+fn pack_manifest_yaml_roundtrip_without_bootstrap() {
+    let manifest: PackManifest = serde_yaml_bw::from_str(include_str!(
+        "fixtures/pack_manifest_without_bootstrap.yaml"
+    ))
+    .expect("fixture deserializes");
+    assert!(
+        manifest.bootstrap.is_none(),
+        "bootstrap should default to None"
+    );
+
+    let json_value = serde_json::to_value(&manifest).expect("serialize");
+    assert!(
+        json_value.get("bootstrap").is_none(),
+        "bootstrap should stay omitted on serialization"
+    );
+
+    let yaml = serde_yaml_bw::to_string(&manifest).expect("serialize yaml");
+    let roundtrip: PackManifest = serde_yaml_bw::from_str(&yaml).expect("yaml roundtrip");
+    assert_eq!(roundtrip, manifest);
+}
+
+#[test]
+fn pack_manifest_yaml_roundtrip_with_bootstrap() {
+    let manifest: PackManifest =
+        serde_yaml_bw::from_str(include_str!("fixtures/pack_manifest_with_bootstrap.yaml"))
+            .expect("fixture deserializes");
+
+    let bootstrap = manifest.bootstrap.as_ref().expect("bootstrap present");
+    assert_eq!(bootstrap.install_flow.as_deref(), Some("platform_install"));
+    assert_eq!(bootstrap.upgrade_flow.as_deref(), Some("platform_upgrade"));
+    assert_eq!(bootstrap.installer_component.as_deref(), Some("installer"));
+
+    let yaml = serde_yaml_bw::to_string(&manifest).expect("serialize yaml");
+    let roundtrip: PackManifest = serde_yaml_bw::from_str(&yaml).expect("yaml roundtrip");
+    assert_eq!(roundtrip.bootstrap, manifest.bootstrap);
+
+    let json_value = serde_json::to_value(&roundtrip).expect("serialize to json");
+    let bootstrap_value = json_value
+        .get("bootstrap")
+        .and_then(|value| value.as_object())
+        .expect("bootstrap should serialize");
+    assert_eq!(
+        bootstrap_value.get("install_flow"),
+        Some(&serde_json::Value::String("platform_install".into()))
+    );
+    assert_eq!(
+        bootstrap_value.get("upgrade_flow"),
+        Some(&serde_json::Value::String("platform_upgrade".into()))
+    );
+    assert_eq!(
+        bootstrap_value.get("installer_component"),
+        Some(&serde_json::Value::String("installer".into()))
+    );
 }
 
 #[test]

@@ -625,6 +625,17 @@ Fields:
 - `dependencies[]` — pack dependencies with aliases and required capabilities.
 - `capabilities` — capability declarations.
 - `signatures` — detached signatures bundle.
+- `bootstrap` *(optional)* — install/upgrade hints for platform-managed packs:
+
+  ```yaml
+  bootstrap:
+    install_flow: platform_install        # flow id to bootstrap a fresh install
+    upgrade_flow: platform_upgrade        # flow id to handle upgrades
+    installer_component: installer        # component orchestrating the bootstrap
+  ```
+
+  Packs without `bootstrap` remain valid and serialize identically; deployer tooling treats the
+  block as a hint instead of a constraint.
 
 ### 6.3 Connectors
 

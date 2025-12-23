@@ -1,0 +1,5 @@
+schema_version: pack-v1
+pack_id: example.pack
+version: "0.1.0"
+kind: application
+publisher: example

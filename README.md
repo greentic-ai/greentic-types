@@ -130,7 +130,7 @@ let ctx = TenantCtx::new("prod".parse().unwrap(), "acme".parse().unwrap())
 - [`Flow`, `Node`, `Routing`, `FlowKind`](src/flow.rs) form the unified flow model (Greentic Flow v1) with structured routing, telemetry hints, and component refs using ID newtypes; nodes remain insertion-ordered so the first entry is the ingress.
 - [`ComponentManifest`](src/component.rs) now includes optional development-time flows under `dev_flows`, storing FlowIR-as-JSON entries for authoring tools; runtimes may safely ignore this field.
 - [`ComponentManifest`](src/component.rs) captures capabilities, configurators, operations, optional config schema, resource hints, and profile helpers like `select_profile`.
-- [`PackManifest`](src/pack_manifest.rs) embeds flows directly via `PackFlowEntry`, includes components, dependencies, capabilities, signatures, and the new `PackKind` (`application`, `provider`, `infrastructure`, `library`).
+- [`PackManifest`](src/pack_manifest.rs) embeds flows directly via `PackFlowEntry`, includes components, dependencies, capabilities, signatures, optional bootstrap hints for platform install/upgrade, and the new `PackKind` (`application`, `provider`, `infrastructure`, `library`).
 - `HostCapabilities` expose generic IaC toggles via the `iac` block so deployment components can request template write/execute access without encoding provider details.
 - [`DeploymentPlan`](src/deployment.rs) stays the shared, provider-neutral description of what needs to run for a tenant/environment.
 

@@ -3,6 +3,9 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+- Added optional `bootstrap` hints to `PackManifest` (install/upgrade flows + installer component),
+  keeping legacy manifests unchanged while enabling platform bootstrap routing; covered by
+  YAML/JSON/CBOR round-trip tests and fixtures.
 - Added domain-agnostic worker envelope models (`WorkerRequest`, `WorkerMessage`, `WorkerResponse`) mirroring `greentic:worker@1.0.0`, with serde/schemars derives, schema exports, tests, and docs.
 - Added optional `dev_flows` to `ComponentManifest` for embedding development-time FlowIR JSON, ignored by runtimes; refreshed docs, tests, and schema exports.
 - Added generic `EventEnvelope` + `EventId`, provider capability descriptors (`EventProviderDescriptor` with `EventProviderKind`, transports, reliability, ordering), and shared `ChannelMessageEnvelope` + `Attachment` for channel messaging; all derive serde/schemars and export JSON Schemas.

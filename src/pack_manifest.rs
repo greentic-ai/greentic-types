@@ -84,6 +84,12 @@ pub struct PackManifest {
     /// Pack signatures.
     #[cfg_attr(feature = "serde", serde(default))]
     pub signatures: PackSignatures,
+    /// Optional bootstrap/install hints for platform-controlled packs.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub bootstrap: Option<BootstrapSpec>,
 }
 
 /// Flow entry embedded in a pack.
@@ -144,4 +150,29 @@ pub struct PackSignatures {
     /// Optional detached signatures.
     #[cfg_attr(feature = "serde", serde(default))]
     pub signatures: Vec<Signature>,
+}
+
+/// Optional bootstrap/install hints for platform-managed packs.
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct BootstrapSpec {
+    /// Flow to run during initial install/bootstrap.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub install_flow: Option<String>,
+    /// Flow to run when upgrading an existing install.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub upgrade_flow: Option<String>,
+    /// Component responsible for install/upgrade orchestration.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub installer_component: Option<String>,
 }

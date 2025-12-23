@@ -126,7 +126,8 @@ pub use messaging::{Attachment, ChannelMessageEnvelope, MessageMetadata};
 pub use outcome::Outcome;
 pub use pack::{PackRef, Signature, SignatureAlgorithm};
 pub use pack_manifest::{
-    ComponentCapability, PackDependency, PackFlowEntry, PackKind, PackManifest, PackSignatures,
+    BootstrapSpec, ComponentCapability, PackDependency, PackFlowEntry, PackKind, PackManifest,
+    PackSignatures,
 };
 pub use policy::{AllowList, NetworkPolicy, PolicyDecision, PolicyDecisionStatus, Protocol};
 #[cfg(feature = "time")]

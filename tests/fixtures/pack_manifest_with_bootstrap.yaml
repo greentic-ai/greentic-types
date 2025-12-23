@@ -1,0 +1,9 @@
+schema_version: pack-v1
+pack_id: greentic.platform
+version: "0.4.0"
+kind: application
+publisher: greentic
+bootstrap:
+  install_flow: platform_install
+  upgrade_flow: platform_upgrade
+  installer_component: installer
