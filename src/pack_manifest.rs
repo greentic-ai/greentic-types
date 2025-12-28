@@ -1,5 +1,6 @@
 //! Canonical pack manifest (.gtpack) representation embedding flows and components.
 
+use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -17,6 +18,10 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "schemars")]
 fn empty_secret_requirements() -> Vec<SecretRequirement> {
     Vec::new()
+}
+
+pub(crate) fn extensions_is_empty(value: &Option<BTreeMap<String, ExtensionRef>>) -> bool {
+    value.as_ref().is_none_or(BTreeMap::is_empty)
 }
 
 /// Hint describing the primary purpose of a pack.
@@ -90,6 +95,12 @@ pub struct PackManifest {
         serde(default, skip_serializing_if = "Option::is_none")
     )]
     pub bootstrap: Option<BootstrapSpec>,
+    /// Optional extension descriptors for provider-specific metadata.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "extensions_is_empty")
+    )]
+    pub extensions: Option<BTreeMap<String, ExtensionRef>>,
 }
 
 /// Flow entry embedded in a pack.
@@ -175,4 +186,33 @@ pub struct BootstrapSpec {
         serde(default, skip_serializing_if = "Option::is_none")
     )]
     pub installer_component: Option<String>,
+}
+
+/// External extension reference embedded in a pack manifest.
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct ExtensionRef {
+    /// Extension kind identifier, e.g. `greentic.ext.provider`.
+    pub kind: String,
+    /// Extension version as a string to avoid semver crate coupling.
+    pub version: String,
+    /// Optional digest pin for the referenced extension payload.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub digest: Option<String>,
+    /// Optional remote or local location for the extension payload.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub location: Option<String>,
+    /// Optional inline extension payload for small metadata blobs.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub inline: Option<serde_json::Value>,
 }

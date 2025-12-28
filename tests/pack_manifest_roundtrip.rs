@@ -157,6 +157,7 @@ fn sample_pack_manifest() -> PackManifest {
         secret_requirements: vec![sample_secret_requirement()],
         signatures: PackSignatures { signatures: vec![] },
         bootstrap: None,
+        extensions: None,
     }
 }
 
@@ -196,6 +197,7 @@ fn manifest_with_bootstrap() -> PackManifest {
         upgrade_flow: Some("platform_upgrade".into()),
         installer_component: Some("installer".into()),
     });
+    manifest.extensions = None;
     manifest
 }
 

@@ -15,7 +15,8 @@ use crate::flow::{
     Routing, TelemetryHints,
 };
 use crate::pack_manifest::{
-    BootstrapSpec, ComponentCapability, PackDependency, PackFlowEntry, PackManifest, PackSignatures,
+    BootstrapSpec, ComponentCapability, ExtensionRef, PackDependency, PackFlowEntry, PackManifest,
+    PackSignatures, extensions_is_empty,
 };
 use crate::{
     ComponentCapabilities, ComponentConfigurators, ComponentId, ComponentManifest,
@@ -84,6 +85,8 @@ struct EncodedPackManifest {
     signatures: PackSignatures,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     bootstrap: Option<BootstrapSpec>,
+    #[serde(default, skip_serializing_if = "extensions_is_empty")]
+    extensions: Option<BTreeMap<String, ExtensionRef>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -291,6 +294,7 @@ impl TryFrom<&PackManifest> for EncodedPackManifest {
             secret_requirements: manifest.secret_requirements.clone(),
             signatures: manifest.signatures.clone(),
             bootstrap: manifest.bootstrap.clone(),
+            extensions: manifest.extensions.clone(),
         })
     }
 }
@@ -541,6 +545,7 @@ impl TryFrom<EncodedPackManifest> for PackManifest {
             secret_requirements: encoded.secret_requirements,
             signatures: encoded.signatures,
             bootstrap: encoded.bootstrap,
+            extensions: encoded.extensions,
         })
     }
 }

@@ -1,0 +1,30 @@
+{
+  "schema_version": "pack-v1",
+  "pack_id": "vendor.provider.pack",
+  "version": "1.0.0",
+  "kind": "provider",
+  "publisher": "vendor",
+  "extensions": {
+    "greentic.ext.provider": {
+      "kind": "greentic.ext.provider",
+      "version": "1.0.0",
+      "digest": "sha256:abc123",
+      "location": "https://example.com/provider-ext.json",
+      "inline": {
+        "schema": "file://schemas/provider-extension.json",
+        "capabilities": ["messaging"],
+        "extra": {
+          "supports_events": true
+        }
+      }
+    },
+    "acme.ext.logging": {
+      "kind": "acme.ext.logging",
+      "version": "0.3.0",
+      "inline": {
+        "level": "info",
+        "sinks": ["stdout"]
+      }
+    }
+  }
+}
