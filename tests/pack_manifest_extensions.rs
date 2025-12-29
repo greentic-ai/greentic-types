@@ -42,7 +42,7 @@ fn parses_manifest_with_provider_extension() {
             .expect("fixture");
 
     let extensions = manifest.extensions.as_ref().expect("extensions present");
-    assert_eq!(extensions.len(), 2);
+    assert_eq!(extensions.len(), 1);
 
     let provider = extensions
         .get("greentic.ext.provider")
@@ -62,12 +62,31 @@ fn parses_manifest_with_provider_extension() {
             .is_some(),
         "inline payload should round-trip"
     );
+}
+
+#[test]
+fn parses_manifest_with_unknown_extension() {
+    let manifest: PackManifest =
+        serde_json::from_str(include_str!("fixtures/manifest_with_unknown_ext.json"))
+            .expect("fixture");
+
+    let extensions = manifest.extensions.as_ref().expect("extensions present");
+    assert_eq!(extensions.len(), 1);
 
     let unknown = extensions
         .get("acme.ext.logging")
         .expect("unknown extension");
     assert_eq!(unknown.kind, "acme.ext.logging");
     assert_eq!(unknown.version, "0.3.0");
+    assert_eq!(
+        unknown
+            .inline
+            .as_ref()
+            .and_then(|inline| inline.get("level"))
+            .and_then(|value| value.as_str()),
+        Some("info"),
+        "inline payload should be preserved"
+    );
 }
 
 #[test]

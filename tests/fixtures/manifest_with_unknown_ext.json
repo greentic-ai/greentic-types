@@ -1,0 +1,17 @@
+{
+  "schema_version": "pack-v1",
+  "pack_id": "vendor.logging.pack",
+  "version": "0.9.1",
+  "kind": "application",
+  "publisher": "vendor",
+  "extensions": {
+    "acme.ext.logging": {
+      "kind": "acme.ext.logging",
+      "version": "0.3.0",
+      "inline": {
+        "level": "info",
+        "sinks": ["stdout"]
+      }
+    }
+  }
+}

@@ -17,14 +17,6 @@
           "supports_events": true
         }
       }
-    },
-    "acme.ext.logging": {
-      "kind": "acme.ext.logging",
-      "version": "0.3.0",
-      "inline": {
-        "level": "info",
-        "sinks": ["stdout"]
-      }
     }
   }
 }

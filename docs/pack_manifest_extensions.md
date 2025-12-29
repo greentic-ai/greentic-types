@@ -10,6 +10,7 @@ Pack manifests support forward-compatible extensions so provider-specific metada
 
 ## Pinning and integrity
 - Set `digest` (e.g. `sha256:<hex>`) whenever the payload is remote to prevent tampering.
+- In strict mode, require `digest` for any remote `location` and fail resolution if the digest is absent or mismatched.
 - Include `version` as a string and keep it aligned with the referenced payload to avoid semver coupling in the core types.
 - When shipping extensions alongside the pack, prefer `inline` for tiny payloads and `location` + `digest` for larger blobs.
 
@@ -17,3 +18,34 @@ Pack manifests support forward-compatible extensions so provider-specific metada
 - Ship a JSON Schema for each extension in the pack (e.g. under `schemas/`) so tooling can validate without network access.
 - Keep inline payloads small and cacheable; store larger artifacts at a pinned location.
 - Treat extensions as optional: runtimes should continue even if an unknown extension is present or cannot be resolved, unless the consuming tool explicitly requires it.
+
+## Examples
+
+Inline payload for a small provider hint:
+
+```json
+{
+  "extensions": {
+    "greentic.ext.provider": {
+      "kind": "greentic.ext.provider",
+      "version": "1.0.0",
+      "inline": { "capabilities": ["messaging"] }
+    }
+  }
+}
+```
+
+Remote payload pinned by digest:
+
+```json
+{
+  "extensions": {
+    "vendor.ext.audit": {
+      "kind": "vendor.ext.audit",
+      "version": "2.0.0",
+      "location": "https://example.com/extensions/audit.json",
+      "digest": "sha256:4c6f2ad3..."
+    }
+  }
+}
+```

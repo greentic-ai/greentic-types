@@ -70,6 +70,7 @@ pub mod events_provider;
 pub mod flow;
 pub mod messaging;
 pub mod pack_manifest;
+pub mod provider;
 pub mod store;
 pub mod supply_chain;
 pub mod worker;
@@ -130,6 +131,7 @@ pub use pack_manifest::{
     PackManifest, PackSignatures,
 };
 pub use policy::{AllowList, NetworkPolicy, PolicyDecision, PolicyDecisionStatus, Protocol};
+pub use provider::{ProviderDecl, ProviderExtensionInline, ProviderManifest, ProviderRuntimeRef};
 #[cfg(feature = "time")]
 pub use run::RunResult;
 pub use run::{NodeFailure, NodeStatus, NodeSummary, RunStatus, TranscriptOffset};
