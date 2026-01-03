@@ -127,11 +127,14 @@ pub use messaging::{Attachment, ChannelMessageEnvelope, MessageMetadata};
 pub use outcome::Outcome;
 pub use pack::{PackRef, Signature, SignatureAlgorithm};
 pub use pack_manifest::{
-    BootstrapSpec, ComponentCapability, ExtensionRef, PackDependency, PackFlowEntry, PackKind,
-    PackManifest, PackSignatures,
+    BootstrapSpec, ComponentCapability, ExtensionInline, ExtensionRef, PackDependency,
+    PackFlowEntry, PackKind, PackManifest, PackSignatures,
 };
 pub use policy::{AllowList, NetworkPolicy, PolicyDecision, PolicyDecisionStatus, Protocol};
-pub use provider::{ProviderDecl, ProviderExtensionInline, ProviderManifest, ProviderRuntimeRef};
+pub use provider::{
+    PROVIDER_EXTENSION_ID, ProviderDecl, ProviderExtensionInline, ProviderManifest,
+    ProviderRuntimeRef,
+};
 #[cfg(feature = "time")]
 pub use run::RunResult;
 pub use run::{NodeFailure, NodeStatus, NodeSummary, RunStatus, TranscriptOffset};
@@ -279,6 +282,17 @@ pub mod ids {
         "https://greentic-ai.github.io/greentic-types/schemas/v1/component-manifest.schema.json";
     /// Pack manifest schema.
     pub const PACK_MANIFEST: &str = "greentic.pack-manifest.v1";
+    /// Provider manifest schema.
+    pub const PROVIDER_MANIFEST: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/provider-manifest.schema.json";
+    /// Provider runtime reference schema.
+    pub const PROVIDER_RUNTIME_REF: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/provider-runtime-ref.schema.json";
+    /// Provider declaration schema.
+    pub const PROVIDER_DECL: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/provider-decl.schema.json";
+    /// Inline provider extension payload schema.
+    pub const PROVIDER_EXTENSION_INLINE: &str = "https://greentic-ai.github.io/greentic-types/schemas/v1/provider-extension-inline.schema.json";
     /// Limits schema.
     pub const LIMITS: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/limits.schema.json";

@@ -7,7 +7,8 @@ use alloc::vec::Vec;
 use semver::Version;
 
 use crate::{
-    ComponentManifest, Flow, FlowId, FlowKind, PackId, SecretRequirement, SemverReq, Signature,
+    ComponentManifest, Flow, FlowId, FlowKind, PROVIDER_EXTENSION_ID, PackId,
+    ProviderExtensionInline, SecretRequirement, SemverReq, Signature,
 };
 
 #[cfg(feature = "schemars")]
@@ -188,6 +189,36 @@ pub struct BootstrapSpec {
     pub installer_component: Option<String>,
 }
 
+/// Inline payload for a pack extension entry.
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(untagged))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub enum ExtensionInline {
+    /// Provider extension payload embedding provider declarations.
+    Provider(ProviderExtensionInline),
+    /// Arbitrary inline payload for unknown extensions.
+    Other(serde_json::Value),
+}
+
+impl ExtensionInline {
+    /// Returns the provider inline payload if present.
+    pub fn as_provider_inline(&self) -> Option<&ProviderExtensionInline> {
+        match self {
+            ExtensionInline::Provider(value) => Some(value),
+            ExtensionInline::Other(_) => None,
+        }
+    }
+
+    /// Returns a mutable provider inline payload if present.
+    pub fn as_provider_inline_mut(&mut self) -> Option<&mut ProviderExtensionInline> {
+        match self {
+            ExtensionInline::Provider(value) => Some(value),
+            ExtensionInline::Other(_) => None,
+        }
+    }
+}
+
 /// External extension reference embedded in a pack manifest.
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -214,5 +245,62 @@ pub struct ExtensionRef {
         feature = "serde",
         serde(default, skip_serializing_if = "Option::is_none")
     )]
-    pub inline: Option<serde_json::Value>,
+    pub inline: Option<ExtensionInline>,
+}
+
+impl PackManifest {
+    /// Returns the inline provider extension payload if present.
+    pub fn provider_extension_inline(&self) -> Option<&ProviderExtensionInline> {
+        self.extensions
+            .as_ref()
+            .and_then(|extensions| extensions.get(PROVIDER_EXTENSION_ID))
+            .and_then(|extension| extension.inline.as_ref())
+            .and_then(ExtensionInline::as_provider_inline)
+    }
+
+    /// Returns a mutable inline provider extension payload if present.
+    pub fn provider_extension_inline_mut(&mut self) -> Option<&mut ProviderExtensionInline> {
+        self.extensions
+            .as_mut()
+            .and_then(|extensions| extensions.get_mut(PROVIDER_EXTENSION_ID))
+            .and_then(|extension| extension.inline.as_mut())
+            .map(|inline| {
+                if let ExtensionInline::Other(value) = inline {
+                    let parsed = serde_json::from_value(value.clone())
+                        .unwrap_or_else(|_| ProviderExtensionInline::default());
+                    *inline = ExtensionInline::Provider(parsed);
+                }
+                inline
+            })
+            .and_then(ExtensionInline::as_provider_inline_mut)
+    }
+
+    /// Ensures the provider extension entry exists and returns its inline payload.
+    pub fn ensure_provider_extension_inline(&mut self) -> &mut ProviderExtensionInline {
+        let extensions = self.extensions.get_or_insert_with(BTreeMap::new);
+        let entry = extensions
+            .entry(PROVIDER_EXTENSION_ID.to_string())
+            .or_insert_with(|| ExtensionRef {
+                kind: PROVIDER_EXTENSION_ID.to_string(),
+                version: "1.0.0".to_string(),
+                digest: None,
+                location: None,
+                inline: Some(ExtensionInline::Provider(ProviderExtensionInline::default())),
+            });
+        if entry.inline.is_none() {
+            entry.inline = Some(ExtensionInline::Provider(ProviderExtensionInline::default()));
+        }
+        let inline = entry
+            .inline
+            .get_or_insert_with(|| ExtensionInline::Provider(ProviderExtensionInline::default()));
+        if let ExtensionInline::Other(value) = inline {
+            let parsed = serde_json::from_value(value.clone())
+                .unwrap_or_else(|_| ProviderExtensionInline::default());
+            *inline = ExtensionInline::Provider(parsed);
+        }
+        match inline {
+            ExtensionInline::Provider(inline) => inline,
+            ExtensionInline::Other(_) => unreachable!("provider inline should be initialised"),
+        }
+    }
 }

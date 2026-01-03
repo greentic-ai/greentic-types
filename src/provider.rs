@@ -3,12 +3,19 @@
 //! These types model the JSON returned by provider-core `describe()` and the provider index
 //! entries used by store, deployer, and runner components.
 
-use alloc::{string::String, vec::Vec};
+use alloc::collections::{BTreeMap, BTreeSet};
+use alloc::{format, string::String, vec::Vec};
 
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
+
+use crate::{ErrorCode, GResult, GreenticError};
+
+/// Canonical provider extension identifier stored in pack manifests.
+pub const PROVIDER_EXTENSION_ID: &str = "greentic.provider-extension.v1";
 
 /// Manifest describing a provider returned by `describe()`.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -94,14 +101,53 @@ pub struct ProviderDecl {
 }
 
 /// Inline extension payload embedding provider declarations.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct ProviderExtensionInline {
     /// Providers included in the extension payload.
+    pub providers: Vec<ProviderDecl>,
+    /// Additional fields preserved for forward-compatibility.
     #[cfg_attr(
         feature = "serde",
-        serde(default, skip_serializing_if = "Vec::is_empty")
+        serde(default, skip_serializing_if = "BTreeMap::is_empty", flatten)
     )]
-    pub providers: Vec<ProviderDecl>,
+    pub additional_fields: BTreeMap<String, Value>,
+}
+
+impl ProviderExtensionInline {
+    /// Performs basic structural validation without provider-specific semantics.
+    pub fn validate_basic(&self) -> GResult<()> {
+        let mut seen = BTreeSet::new();
+        for provider in &self.providers {
+            if provider.provider_type.is_empty() {
+                return Err(GreenticError::new(
+                    ErrorCode::InvalidInput,
+                    "ProviderDecl.provider_type must not be empty",
+                ));
+            }
+            if !seen.insert(&provider.provider_type) {
+                return Err(GreenticError::new(
+                    ErrorCode::InvalidInput,
+                    format!(
+                        "duplicate provider_type '{}' in ProviderExtensionInline",
+                        provider.provider_type
+                    ),
+                ));
+            }
+            if provider.runtime.component_ref.trim().is_empty()
+                || provider.runtime.export.trim().is_empty()
+                || provider.runtime.world.trim().is_empty()
+            {
+                return Err(GreenticError::new(
+                    ErrorCode::InvalidInput,
+                    format!(
+                        "runtime fields must be set for provider '{}'",
+                        provider.provider_type
+                    ),
+                ));
+            }
+        }
+        Ok(())
+    }
 }

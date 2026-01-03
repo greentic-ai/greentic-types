@@ -18,13 +18,14 @@ use crate::{
     Flow, FlowId, GitProviderRef, HashDigest, LayoutSection, Limits, MetadataRecord,
     MetadataRecordRef, Node, NodeFailure, NodeId, NodeStatus, NodeSummary, OciImageRef, PackId,
     PackManifest, PackOrComponentRef, PlanLimits, PolicyInputRef, PolicyRef, PriceModel,
-    ProductOverride, RedactionPath, RegistryRef, RepoAuth, RepoContext, RepoRef, RepoSkin,
-    RepoTenantConfig, RolloutStatus, RunStatus, SbomRef, ScanRef, ScanRequest, ScanResult,
-    ScannerRef, SecretsCaps, SemverReq, SignRequest, SignatureRef, SigningKeyRef, StatementRef,
-    StoreContext, StoreFront, StorePlan, StoreProduct, StoreProductKind, StoreRef, Subscription,
-    SubscriptionStatus, TelemetrySpec, TenantContext, TenantDidDocument, Theme, ToolsCaps,
-    TranscriptOffset, VerifyRequest, VerifyResult, VersionRef, VersionStrategy, WebhookId,
-    WorkerMessage, WorkerRequest, WorkerResponse, ids,
+    ProductOverride, ProviderDecl, ProviderExtensionInline, ProviderManifest, ProviderRuntimeRef,
+    RedactionPath, RegistryRef, RepoAuth, RepoContext, RepoRef, RepoSkin, RepoTenantConfig,
+    RolloutStatus, RunStatus, SbomRef, ScanRef, ScanRequest, ScanResult, ScannerRef, SecretsCaps,
+    SemverReq, SignRequest, SignatureRef, SigningKeyRef, StatementRef, StoreContext, StoreFront,
+    StorePlan, StoreProduct, StoreProductKind, StoreRef, Subscription, SubscriptionStatus,
+    TelemetrySpec, TenantContext, TenantDidDocument, Theme, ToolsCaps, TranscriptOffset,
+    VerifyRequest, VerifyResult, VersionRef, VersionStrategy, WebhookId, WorkerMessage,
+    WorkerRequest, WorkerResponse, ids,
 };
 use schemars::{JsonSchema, Schema, schema_for};
 
@@ -72,6 +73,18 @@ define_schema_fn!(
     ids::COMPONENT_MANIFEST
 );
 define_schema_fn!(pack_manifest, PackManifest, ids::PACK_MANIFEST);
+define_schema_fn!(provider_manifest, ProviderManifest, ids::PROVIDER_MANIFEST);
+define_schema_fn!(
+    provider_runtime_ref,
+    ProviderRuntimeRef,
+    ids::PROVIDER_RUNTIME_REF
+);
+define_schema_fn!(provider_decl, ProviderDecl, ids::PROVIDER_DECL);
+define_schema_fn!(
+    provider_extension_inline,
+    ProviderExtensionInline,
+    ids::PROVIDER_EXTENSION_INLINE
+);
 define_schema_fn!(tenant_context, TenantContext, ids::TENANT_CONTEXT);
 define_schema_fn!(hash_digest, HashDigest, ids::HASH_DIGEST);
 define_schema_fn!(semver_req, SemverReq, ids::SEMVER_REQ);
@@ -256,6 +269,10 @@ schema_entries_vec! {
     { node, "node", ids::NODE },
     { component_manifest, "component-manifest", ids::COMPONENT_MANIFEST },
     { pack_manifest, "pack-manifest", ids::PACK_MANIFEST },
+    { provider_manifest, "provider-manifest", ids::PROVIDER_MANIFEST },
+    { provider_runtime_ref, "provider-runtime-ref", ids::PROVIDER_RUNTIME_REF },
+    { provider_decl, "provider-decl", ids::PROVIDER_DECL },
+    { provider_extension_inline, "provider-extension-inline", ids::PROVIDER_EXTENSION_INLINE },
     { limits, "limits", ids::LIMITS },
     { telemetry_spec, "telemetry-spec", ids::TELEMETRY_SPEC },
     { node_summary, "node-summary", ids::NODE_SUMMARY },

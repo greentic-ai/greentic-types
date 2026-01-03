@@ -5,17 +5,27 @@
   "kind": "provider",
   "publisher": "vendor",
   "extensions": {
-    "greentic.ext.provider": {
-      "kind": "greentic.ext.provider",
+    "greentic.provider-extension.v1": {
+      "kind": "greentic.provider-extension.v1",
       "version": "1.0.0",
       "digest": "sha256:abc123",
       "location": "https://example.com/provider-ext.json",
       "inline": {
-        "schema": "file://schemas/provider-extension.json",
-        "capabilities": ["messaging"],
-        "extra": {
-          "supports_events": true
-        }
+        "providers": [
+          {
+            "provider_type": "vendor.search",
+            "capabilities": ["messaging"],
+            "ops": ["index", "query"],
+            "config_schema_ref": "file://schemas/provider-config.json",
+            "runtime": {
+              "component_ref": "vendor.providers.search",
+              "export": "greentic_provider",
+              "world": "greentic:provider/runtime"
+            },
+            "docs_ref": "docs/provider.md"
+          }
+        ],
+        "notes": "supports embedded providers"
       }
     }
   }

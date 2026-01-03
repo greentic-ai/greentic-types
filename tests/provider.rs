@@ -1,5 +1,7 @@
 #![cfg(feature = "serde")]
 
+use std::collections::BTreeMap;
+
 use greentic_types::{ProviderDecl, ProviderExtensionInline, ProviderManifest, ProviderRuntimeRef};
 
 fn roundtrip_json<T>(value: &T) -> T
@@ -102,7 +104,10 @@ fn provider_extension_inline_roundtrips() {
         },
     ];
 
-    let inline = ProviderExtensionInline { providers };
+    let inline = ProviderExtensionInline {
+        providers,
+        additional_fields: BTreeMap::new(),
+    };
 
     let roundtrip = roundtrip_json(&inline);
     assert_eq!(roundtrip.providers.len(), 2);
