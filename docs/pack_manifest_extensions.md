@@ -2,6 +2,8 @@
 
 Pack manifests support forward-compatible extensions so provider-specific metadata can live outside the core types. Extensions are referenced from the `extensions` map on `PackManifest`, keyed by extension identifier.
 
+Only `greentic.provider-extension.v1` is supported for provider metadata; other keys are treated as unknown extensions.
+
 ## Extension resolution
 - If `inline` is present, use it as the authoritative payload.
 - Otherwise, fetch the payload from `location` (file path, `https://`, etc.).
@@ -26,8 +28,8 @@ Inline payload for a small provider hint:
 ```json
 {
   "extensions": {
-    "greentic.ext.provider": {
-      "kind": "greentic.ext.provider",
+    "greentic.provider-extension.v1": {
+      "kind": "greentic.provider-extension.v1",
       "version": "1.0.0",
       "inline": { "capabilities": ["messaging"] }
     }

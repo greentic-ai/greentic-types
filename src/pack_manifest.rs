@@ -224,7 +224,7 @@ impl ExtensionInline {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct ExtensionRef {
-    /// Extension kind identifier, e.g. `greentic.ext.provider`.
+    /// Extension kind identifier, e.g. `greentic.provider-extension.v1` (only this ID is supported for provider metadata; other keys are treated as unknown extensions).
     pub kind: String,
     /// Extension version as a string to avoid semver crate coupling.
     pub version: String,
