@@ -1,5 +1,7 @@
 //! Pack reference metadata.
 
+pub mod extensions;
+
 use alloc::string::String;
 use alloc::vec::Vec;
 

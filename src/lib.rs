@@ -125,6 +125,15 @@ pub use flow::{
 };
 pub use messaging::{Attachment, ChannelMessageEnvelope, MessageMetadata};
 pub use outcome::Outcome;
+pub use pack::extensions::component_manifests::{
+    ComponentManifestIndexEntryV1, ComponentManifestIndexError, ComponentManifestIndexV1,
+    EXT_COMPONENT_MANIFEST_INDEX_V1, ManifestEncoding,
+};
+#[cfg(feature = "serde")]
+pub use pack::extensions::component_manifests::{
+    decode_component_manifest_index_v1_from_cbor_bytes,
+    encode_component_manifest_index_v1_to_cbor_bytes,
+};
 pub use pack::{PackRef, Signature, SignatureAlgorithm};
 pub use pack_manifest::{
     BootstrapSpec, ComponentCapability, ExtensionInline, ExtensionRef, PackDependency,
