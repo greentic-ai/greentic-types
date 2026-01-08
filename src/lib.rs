@@ -69,6 +69,7 @@ pub mod distributor;
 pub mod events;
 pub mod events_provider;
 pub mod flow;
+pub mod flow_resolve;
 pub mod messaging;
 pub mod pack_manifest;
 pub mod provider;
@@ -125,6 +126,13 @@ pub use flow::{
     ComponentRef as FlowComponentRef, Flow, FlowKind, FlowMetadata, InputMapping, Node,
     OutputMapping, Routing, TelemetryHints,
 };
+pub use flow_resolve::{
+    ComponentSourceRefV1, FLOW_RESOLVE_SCHEMA_VERSION, FlowResolveV1, NodeResolveV1, ResolveModeV1,
+};
+#[cfg(all(feature = "std", feature = "serde"))]
+pub use flow_resolve::{read_flow_resolve, write_flow_resolve};
+#[cfg(feature = "std")]
+pub use flow_resolve::{sidecar_path_for_flow, validate_flow_resolve};
 pub use messaging::{Attachment, ChannelMessageEnvelope, MessageMetadata};
 pub use outcome::Outcome;
 pub use pack::extensions::component_manifests::{
@@ -293,6 +301,8 @@ pub mod ids {
         "https://greentic-ai.github.io/greentic-types/schemas/v1/tenant-did-document.schema.json";
     /// Flow schema.
     pub const FLOW: &str = "greentic.flow.v1";
+    /// Flow resolve sidecar schema.
+    pub const FLOW_RESOLVE: &str = "greentic.flow.resolve.v1";
     /// Node schema.
     pub const NODE: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/node.schema.json";

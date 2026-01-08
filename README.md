@@ -128,6 +128,7 @@ let ctx = TenantCtx::new("prod".parse().unwrap(), "acme".parse().unwrap())
 
 ## Flow, component, and pack models
 - [`Flow`, `Node`, `Routing`, `FlowKind`](src/flow.rs) form the unified flow model (Greentic Flow v1) with structured routing, telemetry hints, and component refs using ID newtypes; nodes remain insertion-ordered so the first entry is the ingress.
+- [`FlowResolveV1`](src/flow_resolve.rs) defines the tool-owned `*.ygtc.resolve.json` sidecar that maps flow node names to local/remote component sources, keeping the human-authored `.ygtc` file free of component refs.
 - [`ComponentManifest`](src/component.rs) now includes optional development-time flows under `dev_flows`, storing FlowIR-as-JSON entries for authoring tools; runtimes may safely ignore this field.
 - [`ComponentManifest`](src/component.rs) captures capabilities, configurators, operations, optional config schema, resource hints, and profile helpers like `select_profile`.
 - [`PackManifest`](src/pack_manifest.rs) embeds flows directly via `PackFlowEntry`, includes components, dependencies, capabilities, signatures, optional bootstrap hints for platform install/upgrade, and the new `PackKind` (`application`, `provider`, `infrastructure`, `library`).
