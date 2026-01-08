@@ -6,6 +6,9 @@ use alloc::vec::Vec;
 
 use semver::Version;
 
+use crate::pack::extensions::component_sources::{
+    ComponentSourcesError, ComponentSourcesV1, EXT_COMPONENT_SOURCES_V1,
+};
 use crate::{
     ComponentManifest, Flow, FlowId, FlowKind, PROVIDER_EXTENSION_ID, PackId,
     ProviderExtensionInline, SecretRequirement, SemverReq, Signature,
@@ -302,5 +305,45 @@ impl PackManifest {
             ExtensionInline::Provider(inline) => inline,
             ExtensionInline::Other(_) => unreachable!("provider inline should be initialised"),
         }
+    }
+
+    /// Returns the component sources extension payload if present.
+    #[cfg(feature = "serde")]
+    pub fn get_component_sources_v1(
+        &self,
+    ) -> Result<Option<ComponentSourcesV1>, ComponentSourcesError> {
+        let extension = self
+            .extensions
+            .as_ref()
+            .and_then(|extensions| extensions.get(EXT_COMPONENT_SOURCES_V1));
+        let inline = match extension.and_then(|entry| entry.inline.as_ref()) {
+            Some(ExtensionInline::Other(value)) => value,
+            Some(_) => return Err(ComponentSourcesError::UnexpectedInline),
+            None => return Ok(None),
+        };
+        let payload = ComponentSourcesV1::from_extension_value(inline)?;
+        Ok(Some(payload))
+    }
+
+    /// Sets the component sources extension payload.
+    #[cfg(feature = "serde")]
+    pub fn set_component_sources_v1(
+        &mut self,
+        sources: ComponentSourcesV1,
+    ) -> Result<(), ComponentSourcesError> {
+        sources.validate_schema_version()?;
+        let inline = sources.to_extension_value()?;
+        let extensions = self.extensions.get_or_insert_with(BTreeMap::new);
+        extensions.insert(
+            EXT_COMPONENT_SOURCES_V1.to_string(),
+            ExtensionRef {
+                kind: EXT_COMPONENT_SOURCES_V1.to_string(),
+                version: "1.0.0".to_string(),
+                digest: None,
+                location: None,
+                inline: Some(ExtensionInline::Other(inline)),
+            },
+        );
+        Ok(())
     }
 }

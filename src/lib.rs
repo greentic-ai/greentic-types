@@ -63,6 +63,7 @@ pub mod capabilities;
 #[cfg(feature = "std")]
 pub mod cbor;
 pub mod component;
+pub mod component_source;
 pub mod deployment;
 pub mod distributor;
 pub mod events;
@@ -105,6 +106,7 @@ pub use component::{
     HttpCapabilities, IaCCapabilities, MessagingCapabilities, ResourceHints, SecretsCapabilities,
     StateCapabilities, TelemetryCapabilities, TelemetryScope, WasiCapabilities,
 };
+pub use component_source::{ComponentSourceRef, ComponentSourceRefError};
 pub use context::{Cloud, DeploymentCtx, Platform};
 pub use deployment::{
     ChannelPlan, DeploymentPlan, MessagingPlan, MessagingSubjectPlan, OAuthPlan, RunnerPlan,
@@ -133,6 +135,14 @@ pub use pack::extensions::component_manifests::{
 pub use pack::extensions::component_manifests::{
     decode_component_manifest_index_v1_from_cbor_bytes,
     encode_component_manifest_index_v1_to_cbor_bytes,
+};
+pub use pack::extensions::component_sources::{
+    ArtifactLocationV1, ComponentSourceEntryV1, ComponentSourcesError, ComponentSourcesV1,
+    EXT_COMPONENT_SOURCES_V1, ResolvedComponentV1,
+};
+#[cfg(feature = "serde")]
+pub use pack::extensions::component_sources::{
+    decode_component_sources_v1_from_cbor_bytes, encode_component_sources_v1_to_cbor_bytes,
 };
 pub use pack::{PackRef, Signature, SignatureAlgorithm};
 pub use pack_manifest::{
