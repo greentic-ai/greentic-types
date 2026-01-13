@@ -19,6 +19,8 @@ pub enum ComponentSourceRef {
     Repo(String),
     /// Store-licensed component reference (`store://...`).
     Store(String),
+    /// File-based component reference (`file://...`).
+    File(String),
 }
 
 impl ComponentSourceRef {
@@ -28,6 +30,7 @@ impl ComponentSourceRef {
             ComponentSourceRef::Oci(_) => "oci",
             ComponentSourceRef::Repo(_) => "repo",
             ComponentSourceRef::Store(_) => "store",
+            ComponentSourceRef::File(_) => "file",
         }
     }
 
@@ -37,6 +40,7 @@ impl ComponentSourceRef {
             ComponentSourceRef::Oci(value) => value,
             ComponentSourceRef::Repo(value) => value,
             ComponentSourceRef::Store(value) => value,
+            ComponentSourceRef::File(value) => value,
         }
     }
 }
@@ -66,6 +70,9 @@ impl core::str::FromStr for ComponentSourceRef {
         if value.starts_with("store://") {
             return parse_with_scheme(value, "store://").map(ComponentSourceRef::Store);
         }
+        if value.starts_with("file://") {
+            return parse_with_scheme(value, "file://").map(ComponentSourceRef::File);
+        }
         Err(ComponentSourceRefError::InvalidScheme)
     }
 }
@@ -94,7 +101,7 @@ pub enum ComponentSourceRefError {
     #[error("component source reference must not contain whitespace")]
     ContainsWhitespace,
     /// Reference must use a supported scheme.
-    #[error("component source reference must use oci://, repo://, or store://")]
+    #[error("component source reference must use oci://, repo://, store://, or file://")]
     InvalidScheme,
     /// Reference is missing the required locator after the scheme.
     #[error("component source reference is missing a locator")]

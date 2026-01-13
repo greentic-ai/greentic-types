@@ -26,6 +26,11 @@ fn component_source_ref_parses_and_formats() {
             .scheme(),
         "store"
     );
+    let file_value = "file:///var/components/search.wasm";
+    let parsed_file: ComponentSourceRef = file_value.parse().expect("parse file ref");
+    assert_eq!(parsed_file.to_string(), file_value);
+    assert_eq!(parsed_file.scheme(), "file");
+    assert_eq!(parsed_file.reference(), "/var/components/search.wasm");
 
     assert_eq!(
         "oci://".parse::<ComponentSourceRef>().unwrap_err(),
