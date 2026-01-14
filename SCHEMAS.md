@@ -29,6 +29,7 @@ The v1 flow/pack model now embeds flows inside `PackManifest` and publishes the 
 | TenantDidDocument | https://greentic-ai.github.io/greentic-types/schemas/v1/tenant-did-document.schema.json |
 | Flow (greentic.flow.v1) | https://greentic-ai.github.io/greentic-types/schemas/v1/flow.schema.json |
 | FlowResolve (greentic.flow.resolve.v1) | https://greentic-ai.github.io/greentic-types/schemas/v1/flow-resolve.schema.json |
+| FlowResolveSummary (greentic.flow.resolve-summary.v1) | https://greentic-ai.github.io/greentic-types/schemas/v1/flow-resolve-summary.schema.json |
 | Node | https://greentic-ai.github.io/greentic-types/schemas/v1/node.schema.json |
 | ComponentManifest | https://greentic-ai.github.io/greentic-types/schemas/v1/component-manifest.schema.json |
 | PackManifest (greentic.pack-manifest.v1) | https://greentic-ai.github.io/greentic-types/schemas/v1/pack-manifest.schema.json |

@@ -15,17 +15,17 @@ use crate::{
     Capabilities, CapabilityMap, ChannelMessageEnvelope, Collection, CommitRef, ComponentId,
     ComponentManifest, ComponentRef, ConnectionKind, DesiredState, DesiredStateExportSpec,
     DesiredSubscriptionEntry, Environment, EnvironmentRef, EventEnvelope, EventProviderDescriptor,
-    Flow, FlowId, FlowResolveV1, GitProviderRef, HashDigest, LayoutSection, Limits, MetadataRecord,
-    MetadataRecordRef, Node, NodeFailure, NodeId, NodeStatus, NodeSummary, OciImageRef, PackId,
-    PackManifest, PackOrComponentRef, PlanLimits, PolicyInputRef, PolicyRef, PriceModel,
-    ProductOverride, ProviderDecl, ProviderExtensionInline, ProviderManifest, ProviderRuntimeRef,
-    RedactionPath, RegistryRef, RepoAuth, RepoContext, RepoRef, RepoSkin, RepoTenantConfig,
-    RolloutStatus, RunStatus, SbomRef, ScanRef, ScanRequest, ScanResult, ScannerRef, SecretsCaps,
-    SemverReq, SignRequest, SignatureRef, SigningKeyRef, StatementRef, StoreContext, StoreFront,
-    StorePlan, StoreProduct, StoreProductKind, StoreRef, Subscription, SubscriptionStatus,
-    TelemetrySpec, TenantContext, TenantDidDocument, Theme, ToolsCaps, TranscriptOffset,
-    VerifyRequest, VerifyResult, VersionRef, VersionStrategy, WebhookId, WorkerMessage,
-    WorkerRequest, WorkerResponse, ids,
+    Flow, FlowId, FlowResolveSummaryV1, FlowResolveV1, GitProviderRef, HashDigest, LayoutSection,
+    Limits, MetadataRecord, MetadataRecordRef, Node, NodeFailure, NodeId, NodeStatus, NodeSummary,
+    OciImageRef, PackId, PackManifest, PackOrComponentRef, PlanLimits, PolicyInputRef, PolicyRef,
+    PriceModel, ProductOverride, ProviderDecl, ProviderExtensionInline, ProviderManifest,
+    ProviderRuntimeRef, RedactionPath, RegistryRef, RepoAuth, RepoContext, RepoRef, RepoSkin,
+    RepoTenantConfig, RolloutStatus, RunStatus, SbomRef, ScanRef, ScanRequest, ScanResult,
+    ScannerRef, SecretsCaps, SemverReq, SignRequest, SignatureRef, SigningKeyRef, StatementRef,
+    StoreContext, StoreFront, StorePlan, StoreProduct, StoreProductKind, StoreRef, Subscription,
+    SubscriptionStatus, TelemetrySpec, TenantContext, TenantDidDocument, Theme, ToolsCaps,
+    TranscriptOffset, VerifyRequest, VerifyResult, VersionRef, VersionStrategy, WebhookId,
+    WorkerMessage, WorkerRequest, WorkerResponse, ids,
 };
 use schemars::{JsonSchema, Schema, schema_for};
 
@@ -67,6 +67,11 @@ define_schema_fn!(flow_id, FlowId, ids::FLOW_ID);
 define_schema_fn!(node_id, NodeId, ids::NODE_ID);
 define_schema_fn!(flow, Flow, ids::FLOW);
 define_schema_fn!(flow_resolve, FlowResolveV1, ids::FLOW_RESOLVE);
+define_schema_fn!(
+    flow_resolve_summary,
+    FlowResolveSummaryV1,
+    ids::FLOW_RESOLVE_SUMMARY
+);
 define_schema_fn!(node, Node, ids::NODE);
 define_schema_fn!(
     component_manifest,
@@ -268,6 +273,7 @@ schema_entries_vec! {
     { tenant_did_document, "tenant-did-document", ids::TENANT_DID_DOCUMENT },
     { flow, "flow", ids::FLOW },
     { flow_resolve, "flow-resolve", ids::FLOW_RESOLVE },
+    { flow_resolve_summary, "flow-resolve-summary", ids::FLOW_RESOLVE_SUMMARY },
     { node, "node", ids::NODE },
     { component_manifest, "component-manifest", ids::COMPONENT_MANIFEST },
     { pack_manifest, "pack-manifest", ids::PACK_MANIFEST },
