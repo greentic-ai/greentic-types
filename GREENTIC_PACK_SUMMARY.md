@@ -117,7 +117,7 @@ flows:
 components:
   - id: vendor.component.qa
     version_req: "^1.2"
-    source: "oci://registry/components"
+    source: "oci://registry/components:1.2.3"
 
 profiles:
   messaging:
@@ -138,6 +138,7 @@ Notes:
 
 - `flows` only lists `id` + relative file path; the flow itself carries its kind/nodes.
 - `components` reference `ComponentManifest`s indirectly via `id` + `version_req` (which uses the `SemverReq` helper). `source` is optional (OCI, registry alias, etc.).
+- `source` OCI references should be explicit about tag (`oci://repo/name:tag`) or digest (`oci://repo/name@sha256:...`).
 - `profiles`, `component_sources`, `connectors` are intentionally `serde_json::Value` blobs so tenants can decide their own shapes. Tooling should pass them through untouched.
 
 `PackManifest` exposes no binding fields. Hosts generate bindings at runtime using capabilities, profile selection, tenant policy, and environment-specific defaults.

@@ -746,7 +746,10 @@ id_newtype!(
     RegistryRef,
     "Registry reference for OCI or artifact storage."
 );
-id_newtype!(OciImageRef, "Reference to an OCI image for distribution.");
+id_newtype!(
+    OciImageRef,
+    "Reference to an OCI image for distribution (oci://repo/name:tag or oci://repo/name@sha256:...)."
+);
 id_newtype!(
     ArtifactRef,
     "Artifact reference within a build or scan result."

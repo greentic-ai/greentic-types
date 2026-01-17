@@ -49,6 +49,49 @@ fn component_source_ref_parses_and_formats() {
 }
 
 #[test]
+fn component_source_ref_detects_tag_and_digest() {
+    let tagged: ComponentSourceRef = "oci://ghcr.io/acme/search:1.2.3".parse().unwrap();
+    assert!(tagged.is_tag());
+    assert!(!tagged.is_digest());
+    assert_eq!(tagged.normalized(), "oci://ghcr.io/acme/search:1.2.3");
+
+    let digested: ComponentSourceRef = "oci://ghcr.io/acme/search@sha256:abc".parse().unwrap();
+    assert!(digested.is_digest());
+    assert!(!digested.is_tag());
+    assert_eq!(
+        digested.normalized(),
+        "oci://ghcr.io/acme/search@sha256:abc"
+    );
+
+    let with_port: ComponentSourceRef = "oci://registry.local:5000/acme/search:latest"
+        .parse()
+        .unwrap();
+    assert!(with_port.is_tag());
+    assert!(!with_port.is_digest());
+
+    let port_without_tag: ComponentSourceRef =
+        "oci://registry.local:5000/acme/search".parse().unwrap();
+    assert!(!port_without_tag.is_tag());
+    assert!(!port_without_tag.is_digest());
+
+    let tagged_and_digested: ComponentSourceRef =
+        "oci://registry.local:5000/acme/search:latest@sha256:abc"
+            .parse()
+            .unwrap();
+    assert!(tagged_and_digested.is_digest());
+    assert!(!tagged_and_digested.is_tag());
+    assert_eq!(
+        tagged_and_digested.normalized(),
+        "oci://registry.local:5000/acme/search@sha256:abc"
+    );
+
+    let repo_ref: ComponentSourceRef = "repo://acme/search@1.2.3".parse().unwrap();
+    assert!(!repo_ref.is_tag());
+    assert!(!repo_ref.is_digest());
+    assert_eq!(repo_ref.normalized(), "repo://acme/search@1.2.3");
+}
+
+#[test]
 fn component_sources_payload_roundtrips_and_matches_shape() {
     let sources = ComponentSourcesV1::new(vec![
         ComponentSourceEntryV1 {

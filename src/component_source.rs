@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "serde", serde(try_from = "String", into = "String"))]
 pub enum ComponentSourceRef {
-    /// Public OCI reference (`oci://...`).
+    /// Public OCI reference (`oci://repo/name:tag` or `oci://repo/name@sha256:...`).
     Oci(String),
     /// Private repository reference (`repo://...`).
     Repo(String),
@@ -41,6 +41,24 @@ impl ComponentSourceRef {
             ComponentSourceRef::Repo(value) => value,
             ComponentSourceRef::Store(value) => value,
             ComponentSourceRef::File(value) => value,
+        }
+    }
+
+    /// Returns `true` when this is an OCI reference using a tag suffix (`:tag`).
+    pub fn is_tag(&self) -> bool {
+        matches!(self.oci_reference_kind(), Some(OciReferenceKind::Tag))
+    }
+
+    /// Returns `true` when this is an OCI reference using a digest suffix (`@sha256:...`).
+    pub fn is_digest(&self) -> bool {
+        matches!(self.oci_reference_kind(), Some(OciReferenceKind::Digest))
+    }
+
+    /// Returns a canonical string form of the reference.
+    pub fn normalized(&self) -> String {
+        match self {
+            ComponentSourceRef::Oci(reference) => normalize_oci_reference(reference),
+            _ => self.to_string(),
         }
     }
 }
@@ -116,4 +134,66 @@ fn parse_with_scheme(value: &str, scheme: &str) -> Result<String, ComponentSourc
         return Ok(rest.to_string());
     }
     Err(ComponentSourceRefError::InvalidScheme)
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum OciReferenceKind {
+    Tag,
+    Digest,
+}
+
+struct OciReferenceParts<'a> {
+    name: &'a str,
+    tag: Option<&'a str>,
+    digest: Option<&'a str>,
+}
+
+impl ComponentSourceRef {
+    fn oci_reference_kind(&self) -> Option<OciReferenceKind> {
+        let ComponentSourceRef::Oci(reference) = self else {
+            return None;
+        };
+        let parts = split_oci_reference(reference);
+        if parts.digest.is_some() {
+            Some(OciReferenceKind::Digest)
+        } else if parts.tag.is_some() {
+            Some(OciReferenceKind::Tag)
+        } else {
+            None
+        }
+    }
+}
+
+fn split_oci_reference(reference: &str) -> OciReferenceParts<'_> {
+    let (name_with_tag, digest) = match reference.split_once('@') {
+        Some((name, digest)) => (name, Some(digest)),
+        None => (reference, None),
+    };
+    let (name, tag) = split_oci_tag(name_with_tag);
+    OciReferenceParts { name, tag, digest }
+}
+
+fn split_oci_tag(reference: &str) -> (&str, Option<&str>) {
+    let last_slash = reference.rfind('/');
+    let last_colon = reference.rfind(':');
+    if let Some(colon) = last_colon {
+        if last_slash.is_none_or(|slash| colon > slash) {
+            let tag = &reference[colon + 1..];
+            if !tag.is_empty() {
+                return (&reference[..colon], Some(tag));
+            }
+        }
+    }
+    (reference, None)
+}
+
+fn normalize_oci_reference(reference: &str) -> String {
+    let parts = split_oci_reference(reference);
+    if let Some(digest) = parts.digest {
+        format!("oci://{}@{}", parts.name, digest)
+    } else if let Some(tag) = parts.tag {
+        format!("oci://{}:{}", parts.name, tag)
+    } else {
+        format!("oci://{}", reference)
+    }
 }
