@@ -8,7 +8,9 @@ use schemars::JsonSchema;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use crate::{FlowId, TenantCtx};
+use crate::{FlowId, PackId, TenantCtx};
+
+use sha2::{Digest, Sha256};
 
 /// Unique key referencing a persisted session.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -136,15 +138,84 @@ pub struct SessionData {
     pub tenant_ctx: TenantCtx,
     /// Flow identifier being executed.
     pub flow_id: FlowId,
+    /// Optional pack identifier tied to the session.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub pack_id: Option<PackId>,
     /// Cursor pinpointing where execution paused.
     pub cursor: SessionCursor,
     /// Serialized execution context/state snapshot.
     pub context_json: String,
 }
 
+/// Stable scope describing where a wait is anchored (conversation/thread/reply).
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct WaitScope {
+    /// Provider identifier (telegram, msgraph, webchat, etc).
+    pub provider_id: String,
+    /// Conversation or chat identifier.
+    pub conversation_id: String,
+    /// Optional thread/topic identifier.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub thread_id: Option<String>,
+    /// Optional reply-to identifier.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub reply_to_id: Option<String>,
+    /// Optional correlation identifier.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub correlation_id: Option<String>,
+}
+
+impl WaitScope {
+    /// Returns a deterministic hash for the scope.
+    pub fn scope_hash(&self) -> String {
+        let mut canonical = String::new();
+        let _ = core::fmt::write(
+            &mut canonical,
+            format_args!(
+                "provider_id={}|conversation_id={}|thread_id={}|reply_to_id={}|correlation_id={}",
+                self.provider_id,
+                self.conversation_id,
+                self.thread_id.as_deref().unwrap_or(""),
+                self.reply_to_id.as_deref().unwrap_or(""),
+                self.correlation_id.as_deref().unwrap_or("")
+            ),
+        );
+
+        let digest = Sha256::digest(canonical.as_bytes());
+        hex_encode(digest.as_slice())
+    }
+}
+
+fn hex_encode(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for &byte in bytes {
+        out.push(HEX[(byte >> 4) as usize] as char);
+        out.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(feature = "serde")]
+    use serde_json::Value;
 
     #[test]
     fn canonical_session_key_includes_components() {
@@ -156,5 +227,84 @@ mod tests {
     fn canonical_session_key_defaults_anchor_and_user() {
         let key = canonical_session_key("tenant", "webhook", None, None);
         assert_eq!(key.as_str(), "tenant:webhook:conversation:user");
+    }
+
+    #[test]
+    fn wait_scope_hash_is_deterministic() {
+        let scope = WaitScope {
+            provider_id: "telegram".to_owned(),
+            conversation_id: "chat-1".to_owned(),
+            thread_id: Some("topic-9".to_owned()),
+            reply_to_id: Some("msg-3".to_owned()),
+            correlation_id: Some("cid-7".to_owned()),
+        };
+
+        assert_eq!(
+            scope.scope_hash(),
+            "53ef85dad25d5836477a5e6a11cd13527c45163bd82de3bd1fd524dbf7d826d6"
+        );
+    }
+
+    #[test]
+    fn wait_scope_hash_changes_with_fields() {
+        let base = WaitScope {
+            provider_id: "telegram".to_owned(),
+            conversation_id: "chat-1".to_owned(),
+            thread_id: Some("topic-9".to_owned()),
+            reply_to_id: Some("msg-3".to_owned()),
+            correlation_id: Some("cid-7".to_owned()),
+        };
+
+        let mut altered = base.clone();
+        altered.reply_to_id = Some("msg-4".to_owned());
+
+        assert_ne!(base.scope_hash(), altered.scope_hash());
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn session_data_pack_id_is_optional() {
+        let data = SessionData {
+            tenant_ctx: TenantCtx::new(
+                "env"
+                    .parse()
+                    .unwrap_or_else(|err| panic!("parse env failed: {err}")),
+                "tenant"
+                    .parse()
+                    .unwrap_or_else(|err| panic!("parse tenant failed: {err}")),
+            ),
+            flow_id: "flow-1"
+                .parse()
+                .unwrap_or_else(|err| panic!("parse flow failed: {err}")),
+            pack_id: None,
+            cursor: SessionCursor::new("node-1"),
+            context_json: "{}".to_owned(),
+        };
+
+        let value = serde_json::to_value(&data)
+            .unwrap_or_else(|err| panic!("serialize session failed: {err}"));
+        assert!(
+            value.get("pack_id").is_none(),
+            "pack_id should be omitted when None"
+        );
+
+        let mut data_with_pack = data.clone();
+        data_with_pack.pack_id = Some(
+            "greentic.demo.pack"
+                .parse()
+                .unwrap_or_else(|err| panic!("parse pack id failed: {err}")),
+        );
+
+        let value = serde_json::to_value(&data_with_pack)
+            .unwrap_or_else(|err| panic!("serialize session failed: {err}"));
+        assert!(value.get("pack_id").is_some());
+
+        let object = value
+            .as_object()
+            .cloned()
+            .unwrap_or_else(|| panic!("expected session value to be a JSON object"));
+        let roundtrip: SessionData = serde_json::from_value(Value::Object(object))
+            .unwrap_or_else(|err| panic!("deserialize session failed: {err}"));
+        assert_eq!(roundtrip.pack_id, data_with_pack.pack_id);
     }
 }

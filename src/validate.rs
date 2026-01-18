@@ -1,12 +1,15 @@
 //! Pack validation types and helpers.
 
 use alloc::collections::BTreeSet;
+use alloc::collections::BTreeSet as HashSet;
 use alloc::string::String;
 use alloc::vec::Vec;
 
 use semver::Version;
 use serde_json::Value;
 
+use crate::pack::extensions::component_sources::{ComponentSourcesV1, EXT_COMPONENT_SOURCES_V1};
+use crate::pack_manifest::ExtensionInline;
 use crate::{PackId, PackManifest};
 
 #[cfg(feature = "schemars")]
@@ -155,6 +158,14 @@ pub fn validate_pack_manifest_core(manifest: &PackManifest) -> Vec<Diagnostic> {
         }
     }
 
+    let declared_components = declared_component_keys(manifest);
+    let explicit_components: HashSet<String> = manifest
+        .components
+        .iter()
+        .map(|component| component.id.as_str().to_owned())
+        .collect();
+    let mut non_explicit_components: HashSet<String> = HashSet::new();
+
     let mut dependency_aliases = BTreeSet::new();
     for dependency in &manifest.dependencies {
         if dependency.alias.trim().is_empty() {
@@ -272,17 +283,34 @@ pub fn validate_pack_manifest_core(manifest: &PackManifest) -> Vec<Diagnostic> {
                     }
                 }
                 None => {
-                    if !component_ids.contains(&node.component.id) {
+                    let component_key = node.component.id.as_str();
+                    if !declared_components.contains(component_key) {
                         diagnostics.push(core_diagnostic(
                             Severity::Error,
                             "PACK_FLOW_COMPONENT_MISSING",
-                            "Flow node references a component not declared in the pack manifest.",
+                            "Flow node references a component not resolvable by the pack.",
                             Some(format!(
                                 "flows.{}.nodes.{}.component.id",
                                 entry.id.as_str(),
                                 node_id.as_str()
                             )),
-                            Some("Declare the component in the pack manifest.".to_owned()),
+                            Some(
+                                "Declare or source the component in the pack manifest.".to_owned(),
+                            ),
+                        ));
+                    } else if !explicit_components.contains(component_key)
+                        && non_explicit_components.insert(component_key.to_owned())
+                    {
+                        diagnostics.push(core_diagnostic(
+                            Severity::Warn,
+                            "PACK_COMPONENT_NOT_EXPLICIT",
+                            "Component is resolved via component sources or lock but is not declared in manifest.components.",
+                            Some(format!(
+                                "flows.{}.nodes.{}.component.id",
+                                entry.id.as_str(),
+                                node_id.as_str()
+                            )),
+                            Some("Consider declaring the component explicitly in manifest.components.".to_owned()),
                         ));
                     }
                 }
@@ -291,6 +319,33 @@ pub fn validate_pack_manifest_core(manifest: &PackManifest) -> Vec<Diagnostic> {
     }
 
     diagnostics
+}
+
+fn declared_component_keys(manifest: &PackManifest) -> HashSet<String> {
+    let mut declared = HashSet::new();
+    for component in &manifest.components {
+        declared.insert(component.id.as_str().to_owned());
+    }
+
+    #[cfg(feature = "serde")]
+    {
+        if let Some(extensions) = manifest.extensions.as_ref() {
+            if let Some(extension) = extensions.get(EXT_COMPONENT_SOURCES_V1) {
+                if let Some(ExtensionInline::Other(value)) = extension.inline.as_ref() {
+                    if let Ok(payload) = ComponentSourcesV1::from_extension_value(value) {
+                        for entry in payload.components {
+                            declared.insert(entry.name);
+                            if let Some(component_id) = entry.component_id {
+                                declared.insert(component_id.as_str().to_owned());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    declared
 }
 
 fn core_diagnostic(

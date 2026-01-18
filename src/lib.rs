@@ -177,7 +177,7 @@ pub use run::RunResult;
 pub use run::{NodeFailure, NodeStatus, NodeSummary, RunStatus, TranscriptOffset};
 pub use secrets::{SecretFormat, SecretKey, SecretRequirement, SecretScope};
 pub use session::canonical_session_key;
-pub use session::{SessionCursor, SessionData, SessionKey};
+pub use session::{SessionCursor, SessionData, SessionKey, WaitScope};
 pub use state::{StateKey, StatePath};
 pub use store::{
     ArtifactSelector, BundleSpec, CapabilityMap, Collection, ConnectionKind, DesiredState,
