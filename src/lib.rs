@@ -92,6 +92,7 @@ pub mod state;
 pub mod telemetry;
 pub mod tenant;
 pub mod tenant_config;
+pub mod validate;
 
 pub use bindings::hints::{
     BindingsHints, EnvHints, McpHints, McpServer, NetworkHints, SecretsHints,
@@ -201,6 +202,9 @@ pub use tenant_config::{
     IdentityProviderOption, RepoAuth, RepoConfigFeatures, RepoSkin, RepoSkinLayout, RepoSkinLinks,
     RepoSkinTheme, RepoTenantConfig, RepoWorkerPanel, StoreTarget, TenantDidDocument,
     VerificationMethod,
+};
+pub use validate::{
+    Diagnostic, PackValidator, Severity, ValidationReport, validate_pack_manifest_core,
 };
 pub use worker::{WorkerMessage, WorkerRequest, WorkerResponse};
 
@@ -322,6 +326,15 @@ pub mod ids {
         "https://greentic-ai.github.io/greentic-types/schemas/v1/component-manifest.schema.json";
     /// Pack manifest schema.
     pub const PACK_MANIFEST: &str = "greentic.pack-manifest.v1";
+    /// Validation severity schema.
+    pub const VALIDATION_SEVERITY: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/validation-severity.schema.json";
+    /// Validation diagnostic schema.
+    pub const VALIDATION_DIAGNOSTIC: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/validation-diagnostic.schema.json";
+    /// Validation report schema.
+    pub const VALIDATION_REPORT: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/validation-report.schema.json";
     /// Provider manifest schema.
     pub const PROVIDER_MANIFEST: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/provider-manifest.schema.json";

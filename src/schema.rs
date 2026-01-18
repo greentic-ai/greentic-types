@@ -14,18 +14,19 @@ use crate::{
     AttestationStatement, BranchRef, BuildLogRef, BuildPlan, BuildRef, BuildStatus, BundleSpec,
     Capabilities, CapabilityMap, ChannelMessageEnvelope, Collection, CommitRef, ComponentId,
     ComponentManifest, ComponentRef, ConnectionKind, DesiredState, DesiredStateExportSpec,
-    DesiredSubscriptionEntry, Environment, EnvironmentRef, EventEnvelope, EventProviderDescriptor,
-    Flow, FlowId, FlowResolveSummaryV1, FlowResolveV1, GitProviderRef, HashDigest, LayoutSection,
-    Limits, MetadataRecord, MetadataRecordRef, Node, NodeFailure, NodeId, NodeStatus, NodeSummary,
-    OciImageRef, PackId, PackManifest, PackOrComponentRef, PlanLimits, PolicyInputRef, PolicyRef,
-    PriceModel, ProductOverride, ProviderDecl, ProviderExtensionInline, ProviderManifest,
-    ProviderRuntimeRef, RedactionPath, RegistryRef, RepoAuth, RepoContext, RepoRef, RepoSkin,
-    RepoTenantConfig, RolloutStatus, RunStatus, SbomRef, ScanRef, ScanRequest, ScanResult,
-    ScannerRef, SecretsCaps, SemverReq, SignRequest, SignatureRef, SigningKeyRef, StatementRef,
-    StoreContext, StoreFront, StorePlan, StoreProduct, StoreProductKind, StoreRef, Subscription,
-    SubscriptionStatus, TelemetrySpec, TenantContext, TenantDidDocument, Theme, ToolsCaps,
-    TranscriptOffset, VerifyRequest, VerifyResult, VersionRef, VersionStrategy, WebhookId,
-    WorkerMessage, WorkerRequest, WorkerResponse, ids,
+    DesiredSubscriptionEntry, Diagnostic, Environment, EnvironmentRef, EventEnvelope,
+    EventProviderDescriptor, Flow, FlowId, FlowResolveSummaryV1, FlowResolveV1, GitProviderRef,
+    HashDigest, LayoutSection, Limits, MetadataRecord, MetadataRecordRef, Node, NodeFailure,
+    NodeId, NodeStatus, NodeSummary, OciImageRef, PackId, PackManifest, PackOrComponentRef,
+    PlanLimits, PolicyInputRef, PolicyRef, PriceModel, ProductOverride, ProviderDecl,
+    ProviderExtensionInline, ProviderManifest, ProviderRuntimeRef, RedactionPath, RegistryRef,
+    RepoAuth, RepoContext, RepoRef, RepoSkin, RepoTenantConfig, RolloutStatus, RunStatus, SbomRef,
+    ScanRef, ScanRequest, ScanResult, ScannerRef, SecretsCaps, SemverReq, Severity, SignRequest,
+    SignatureRef, SigningKeyRef, StatementRef, StoreContext, StoreFront, StorePlan, StoreProduct,
+    StoreProductKind, StoreRef, Subscription, SubscriptionStatus, TelemetrySpec, TenantContext,
+    TenantDidDocument, Theme, ToolsCaps, TranscriptOffset, ValidationReport, VerifyRequest,
+    VerifyResult, VersionRef, VersionStrategy, WebhookId, WorkerMessage, WorkerRequest,
+    WorkerResponse, ids,
 };
 use schemars::{JsonSchema, Schema, schema_for};
 
@@ -79,6 +80,13 @@ define_schema_fn!(
     ids::COMPONENT_MANIFEST
 );
 define_schema_fn!(pack_manifest, PackManifest, ids::PACK_MANIFEST);
+define_schema_fn!(validation_severity, Severity, ids::VALIDATION_SEVERITY);
+define_schema_fn!(
+    validation_diagnostic,
+    Diagnostic,
+    ids::VALIDATION_DIAGNOSTIC
+);
+define_schema_fn!(validation_report, ValidationReport, ids::VALIDATION_REPORT);
 define_schema_fn!(provider_manifest, ProviderManifest, ids::PROVIDER_MANIFEST);
 define_schema_fn!(
     provider_runtime_ref,
@@ -277,6 +285,9 @@ schema_entries_vec! {
     { node, "node", ids::NODE },
     { component_manifest, "component-manifest", ids::COMPONENT_MANIFEST },
     { pack_manifest, "pack-manifest", ids::PACK_MANIFEST },
+    { validation_severity, "validation-severity", ids::VALIDATION_SEVERITY },
+    { validation_diagnostic, "validation-diagnostic", ids::VALIDATION_DIAGNOSTIC },
+    { validation_report, "validation-report", ids::VALIDATION_REPORT },
     { provider_manifest, "provider-manifest", ids::PROVIDER_MANIFEST },
     { provider_runtime_ref, "provider-runtime-ref", ids::PROVIDER_RUNTIME_REF },
     { provider_decl, "provider-decl", ids::PROVIDER_DECL },

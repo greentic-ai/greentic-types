@@ -33,6 +33,9 @@ The v1 flow/pack model now embeds flows inside `PackManifest` and publishes the 
 | Node | https://greentic-ai.github.io/greentic-types/schemas/v1/node.schema.json |
 | ComponentManifest | https://greentic-ai.github.io/greentic-types/schemas/v1/component-manifest.schema.json |
 | PackManifest (greentic.pack-manifest.v1) | https://greentic-ai.github.io/greentic-types/schemas/v1/pack-manifest.schema.json |
+| ValidationSeverity | https://greentic-ai.github.io/greentic-types/schemas/v1/validation-severity.schema.json |
+| ValidationDiagnostic | https://greentic-ai.github.io/greentic-types/schemas/v1/validation-diagnostic.schema.json |
+| ValidationReport | https://greentic-ai.github.io/greentic-types/schemas/v1/validation-report.schema.json |
 | Limits | https://greentic-ai.github.io/greentic-types/schemas/v1/limits.schema.json |
 | TelemetrySpec | https://greentic-ai.github.io/greentic-types/schemas/v1/telemetry-spec.schema.json |
 | NodeSummary | https://greentic-ai.github.io/greentic-types/schemas/v1/node-summary.schema.json |
