@@ -150,50 +150,47 @@ pub struct SessionData {
     pub context_json: String,
 }
 
-/// Stable scope describing where a wait is anchored (conversation/thread/reply).
+/// Stable scope describing where a reply is anchored (conversation/thread/reply).
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
-pub struct WaitScope {
-    /// Provider identifier (telegram, msgraph, webchat, etc).
-    pub provider_id: String,
-    /// Conversation or chat identifier.
-    pub conversation_id: String,
+pub struct ReplyScope {
+    /// Conversation identifier.
+    pub conversation: String,
     /// Optional thread/topic identifier.
     #[cfg_attr(
         feature = "serde",
         serde(default, skip_serializing_if = "Option::is_none")
     )]
-    pub thread_id: Option<String>,
+    pub thread: Option<String>,
     /// Optional reply-to identifier.
     #[cfg_attr(
         feature = "serde",
         serde(default, skip_serializing_if = "Option::is_none")
     )]
-    pub reply_to_id: Option<String>,
+    pub reply_to: Option<String>,
     /// Optional correlation identifier.
     #[cfg_attr(
         feature = "serde",
         serde(default, skip_serializing_if = "Option::is_none")
     )]
-    pub correlation_id: Option<String>,
+    pub correlation: Option<String>,
 }
 
-impl WaitScope {
+/// Legacy alias for reply scope.
+pub type WaitScope = ReplyScope;
+
+impl ReplyScope {
     /// Returns a deterministic hash for the scope.
     pub fn scope_hash(&self) -> String {
         let mut canonical = String::new();
-        let _ = core::fmt::write(
-            &mut canonical,
-            format_args!(
-                "provider_id={}|conversation_id={}|thread_id={}|reply_to_id={}|correlation_id={}",
-                self.provider_id,
-                self.conversation_id,
-                self.thread_id.as_deref().unwrap_or(""),
-                self.reply_to_id.as_deref().unwrap_or(""),
-                self.correlation_id.as_deref().unwrap_or("")
-            ),
-        );
+        canonical.push_str(self.conversation.as_str());
+        canonical.push('\n');
+        canonical.push_str(self.thread.as_deref().unwrap_or(""));
+        canonical.push('\n');
+        canonical.push_str(self.reply_to.as_deref().unwrap_or(""));
+        canonical.push('\n');
+        canonical.push_str(self.correlation.as_deref().unwrap_or(""));
 
         let digest = Sha256::digest(canonical.as_bytes());
         hex_encode(digest.as_slice())
@@ -230,35 +227,51 @@ mod tests {
     }
 
     #[test]
-    fn wait_scope_hash_is_deterministic() {
-        let scope = WaitScope {
-            provider_id: "telegram".to_owned(),
-            conversation_id: "chat-1".to_owned(),
-            thread_id: Some("topic-9".to_owned()),
-            reply_to_id: Some("msg-3".to_owned()),
-            correlation_id: Some("cid-7".to_owned()),
+    fn reply_scope_hash_is_deterministic() {
+        let scope = ReplyScope {
+            conversation: "chat-1".to_owned(),
+            thread: Some("topic-9".to_owned()),
+            reply_to: Some("msg-3".to_owned()),
+            correlation: Some("cid-7".to_owned()),
         };
 
         assert_eq!(
             scope.scope_hash(),
-            "53ef85dad25d5836477a5e6a11cd13527c45163bd82de3bd1fd524dbf7d826d6"
+            "5251e2c9eb975466809eecbe51be7aa8dc7785ad05cb393a8f47a3a2f42cc544"
         );
     }
 
     #[test]
-    fn wait_scope_hash_changes_with_fields() {
-        let base = WaitScope {
-            provider_id: "telegram".to_owned(),
-            conversation_id: "chat-1".to_owned(),
-            thread_id: Some("topic-9".to_owned()),
-            reply_to_id: Some("msg-3".to_owned()),
-            correlation_id: Some("cid-7".to_owned()),
+    fn reply_scope_hash_changes_with_fields() {
+        let base = ReplyScope {
+            conversation: "chat-1".to_owned(),
+            thread: Some("topic-9".to_owned()),
+            reply_to: Some("msg-3".to_owned()),
+            correlation: Some("cid-7".to_owned()),
         };
 
         let mut altered = base.clone();
-        altered.reply_to_id = Some("msg-4".to_owned());
+        altered.reply_to = Some("msg-4".to_owned());
 
         assert_ne!(base.scope_hash(), altered.scope_hash());
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn reply_scope_roundtrip() {
+        let scope = ReplyScope {
+            conversation: "chat-2".to_owned(),
+            thread: None,
+            reply_to: Some("msg-9".to_owned()),
+            correlation: None,
+        };
+
+        let value = serde_json::to_value(&scope)
+            .unwrap_or_else(|err| panic!("serialize reply scope failed: {err}"));
+        let roundtrip: ReplyScope = serde_json::from_value(value)
+            .unwrap_or_else(|err| panic!("deserialize reply scope failed: {err}"));
+
+        assert_eq!(roundtrip, scope);
     }
 
     #[cfg(feature = "serde")]

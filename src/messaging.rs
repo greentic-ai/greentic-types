@@ -7,7 +7,7 @@ use schemars::JsonSchema;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use crate::TenantCtx;
+use crate::{ReplyScope, TenantCtx};
 
 /// Collection of metadata entries associated with a channel message.
 pub type MessageMetadata = BTreeMap<String, String>;
@@ -48,12 +48,24 @@ pub struct ChannelMessageEnvelope {
     pub channel: String,
     /// Conversation or thread identifier.
     pub session_id: String,
+    /// Optional reply scope that can be used for resumption.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub reply_scope: Option<ReplyScope>,
     /// Optional user identifier associated with the message.
     #[cfg_attr(
         feature = "serde",
         serde(default, skip_serializing_if = "Option::is_none")
     )]
     pub user_id: Option<String>,
+    /// Optional correlation identifier used by outbound adapters.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub correlation_id: Option<String>,
     /// Optional text content.
     #[cfg_attr(
         feature = "serde",
