@@ -74,6 +74,7 @@ pub mod flow_resolve_summary;
 pub mod messaging;
 pub mod pack_manifest;
 pub mod provider;
+pub mod provider_install;
 pub mod store;
 pub mod supply_chain;
 pub mod worker;
@@ -172,6 +173,7 @@ pub use provider::{
     PROVIDER_EXTENSION_ID, ProviderDecl, ProviderExtensionInline, ProviderManifest,
     ProviderRuntimeRef,
 };
+pub use provider_install::{ProviderInstallRecord, ProviderInstallRefs};
 #[cfg(feature = "time")]
 pub use run::RunResult;
 pub use run::{NodeFailure, NodeStatus, NodeSummary, RunStatus, TranscriptOffset};
@@ -204,7 +206,8 @@ pub use tenant_config::{
     VerificationMethod,
 };
 pub use validate::{
-    Diagnostic, PackValidator, Severity, ValidationReport, validate_pack_manifest_core,
+    Diagnostic, PackValidator, Severity, ValidationCounts, ValidationReport,
+    validate_pack_manifest_core,
 };
 pub use worker::{WorkerMessage, WorkerRequest, WorkerResponse};
 
@@ -346,6 +349,8 @@ pub mod ids {
         "https://greentic-ai.github.io/greentic-types/schemas/v1/provider-decl.schema.json";
     /// Inline provider extension payload schema.
     pub const PROVIDER_EXTENSION_INLINE: &str = "https://greentic-ai.github.io/greentic-types/schemas/v1/provider-extension-inline.schema.json";
+    /// Provider installation record schema.
+    pub const PROVIDER_INSTALL_RECORD: &str = "https://greentic-ai.github.io/greentic-types/schemas/v1/provider-install-record.schema.json";
     /// Limits schema.
     pub const LIMITS: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/limits.schema.json";
@@ -388,6 +393,9 @@ pub mod ids {
     /// Webhook identifier schema.
     pub const WEBHOOK_ID: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/webhook-id.schema.json";
+    /// Provider installation identifier schema.
+    pub const PROVIDER_INSTALL_ID: &str =
+        "https://greentic-ai.github.io/greentic-types/schemas/v1/provider-install-id.schema.json";
     /// Repository reference schema.
     pub const REPO_REF: &str =
         "https://greentic-ai.github.io/greentic-types/schemas/v1/repo-ref.schema.json";
@@ -703,6 +711,10 @@ id_newtype!(
 );
 id_newtype!(ScannerRef, "Identifier referencing a scanner provider.");
 id_newtype!(WebhookId, "Identifier referencing a registered webhook.");
+id_newtype!(
+    ProviderInstallId,
+    "Identifier referencing a provider installation record."
+);
 id_newtype!(PackId, "Globally unique pack identifier.");
 id_newtype!(
     ComponentId,

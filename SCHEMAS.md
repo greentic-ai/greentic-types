@@ -50,6 +50,8 @@ The v1 flow/pack model now embeds flows inside `PackManifest` and publishes the 
 | GitProviderRef | https://greentic-ai.github.io/greentic-types/schemas/v1/git-provider-ref.schema.json |
 | ScannerRef | https://greentic-ai.github.io/greentic-types/schemas/v1/scanner-ref.schema.json |
 | WebhookId | https://greentic-ai.github.io/greentic-types/schemas/v1/webhook-id.schema.json |
+| ProviderInstallId | https://greentic-ai.github.io/greentic-types/schemas/v1/provider-install-id.schema.json |
+| ProviderInstallRecord | https://greentic-ai.github.io/greentic-types/schemas/v1/provider-install-record.schema.json |
 | RepoRef | https://greentic-ai.github.io/greentic-types/schemas/v1/repo-ref.schema.json |
 | ComponentRef | https://greentic-ai.github.io/greentic-types/schemas/v1/component-ref.schema.json |
 | VersionRef | https://greentic-ai.github.io/greentic-types/schemas/v1/version-ref.schema.json |

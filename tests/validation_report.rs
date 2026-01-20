@@ -1,4 +1,4 @@
-use greentic_types::{Diagnostic, Severity, ValidationReport};
+use greentic_types::{Diagnostic, Severity, ValidationCounts, ValidationReport};
 
 #[cfg(feature = "serde")]
 use greentic_types::PackId;
@@ -10,6 +10,7 @@ use semver::Version;
 fn report_has_errors() {
     let mut report = ValidationReport::default();
     assert!(!report.has_errors());
+    assert_eq!(report.counts(), ValidationCounts::default());
 
     report.push(Diagnostic {
         severity: Severity::Warn,
@@ -20,6 +21,14 @@ fn report_has_errors() {
         data: serde_json::Value::Null,
     });
     assert!(!report.has_errors());
+    assert_eq!(
+        report.counts(),
+        ValidationCounts {
+            info: 0,
+            warn: 1,
+            error: 0,
+        }
+    );
 
     report.push(Diagnostic {
         severity: Severity::Error,
@@ -30,6 +39,14 @@ fn report_has_errors() {
         data: serde_json::Value::Null,
     });
     assert!(report.has_errors());
+    assert_eq!(
+        report.counts(),
+        ValidationCounts {
+            info: 0,
+            warn: 1,
+            error: 1,
+        }
+    );
 }
 
 #[cfg(feature = "serde")]

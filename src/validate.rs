@@ -97,12 +97,36 @@ pub struct ValidationReport {
     pub diagnostics: Vec<Diagnostic>,
 }
 
+/// Breakdown of diagnostics by severity.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct ValidationCounts {
+    /// Count of informational diagnostics.
+    pub info: usize,
+    /// Count of warning diagnostics.
+    pub warn: usize,
+    /// Count of error diagnostics.
+    pub error: usize,
+}
+
 impl ValidationReport {
     /// Returns `true` when the report includes error diagnostics.
     pub fn has_errors(&self) -> bool {
         self.diagnostics
             .iter()
             .any(|diag| matches!(diag.severity, Severity::Error))
+    }
+
+    /// Returns the number of diagnostics per severity.
+    pub fn counts(&self) -> ValidationCounts {
+        let mut counts = ValidationCounts::default();
+        for diag in &self.diagnostics {
+            match diag.severity {
+                Severity::Info => counts.info += 1,
+                Severity::Warn => counts.warn += 1,
+                Severity::Error => counts.error += 1,
+            }
+        }
+        counts
     }
 
     /// Appends a diagnostic to the report.
