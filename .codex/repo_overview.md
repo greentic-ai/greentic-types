@@ -12,27 +12,51 @@
 - **Path:** `src/tenant.rs`, `src/context.rs`, `src/session.rs`  
   **Role:** Tenant/session identity and context helpers.  
   **Key functionality:** `TenantCtx` builder for tenant/team/user/session/flow/node metadata with impersonation and deadlines; `TenantIdentity`/`TenantContext` derivations; `DeploymentCtx` describing cloud/platform/runtime; session keys, canonical session key builder, and session cursor/data models.
+- **Path:** `src/tenant_config.rs`  
+  **Role:** Tenant-facing UI configuration documents.  
+  **Key functionality:** Skin/theme/layout/auth/DID-aligned JSON shapes for tenant branding, login/console visuals, and related metadata served to UI clients.
 - **Path:** `src/capabilities.rs`, `src/policy.rs`  
   **Role:** Capability and policy declarations for packs/runtimes.  
   **Key functionality:** Capability toggles for HTTP, secrets, KV, FS, networking, tools plus `Limits` and `TelemetrySpec`; network `AllowList`/`NetworkPolicy` and `PolicyDecision` with legacy compatibility fields.
 - **Path:** `src/component.rs`  
   **Role:** Component manifest and capability requirements.  
   **Key functionality:** `ComponentManifest` with flow support checks, profile selection/fallback, configurator references; Wasi/host capability structs (secrets, state, messaging/events/http, telemetry scope, IaC permissions); profile error types.
+- **Path:** `src/component_source.rs`  
+  **Role:** Canonical component source references.  
+  **Key functionality:** `ComponentSourceRef` parsing/validation for oci/repo/store/file references, normalization helpers, and error types.
 - **Path:** `src/flow.rs`  
   **Role:** Flow graph representation used in packs.  
   **Key functionality:** `Flow` with ordered nodes (Fnv hasher), ingress helper, structure/component validation against manifests, `FlowKind` variants (messaging/events), and node metadata (kind/profile/component/config/routing).
+- **Path:** `src/flow_resolve.rs`, `src/flow_resolve_summary.rs`  
+  **Role:** Flow resolve sidecars and summary payloads.  
+  **Key functionality:** Versioned JSON shapes for component resolution metadata, resolve modes, and pinned digest summaries for each flow node.
 - **Path:** `src/pack_manifest.rs`, `src/pack.rs`  
   **Role:** Pack manifests and references.  
-  **Key functionality:** `PackManifest` (.gtpack) with flows/components, optional profiles/connectors/component_sources and `PackKind`; `PackRef`/`Signature` models for OCI-hosted packs.
+  **Key functionality:** `PackManifest` (.gtpack) with flows/components, optional profiles/connectors/component_sources and `PackKind`; `PackRef`/`Signature` models for OCI-hosted packs; extension helpers under `src/pack/extensions/` for component source and per-component manifest indexes.
+- **Path:** `src/cbor.rs`  
+  **Role:** Canonical CBOR encoding for pack manifests.  
+  **Key functionality:** Encode/decode `PackManifest` into CBOR with symbol tables and validation errors.
+- **Path:** `src/validate.rs`  
+  **Role:** Pack validation diagnostics.  
+  **Key functionality:** `ValidationReport`/`Diagnostic` types with severity counts and extension-aware pack validation metadata.
 - **Path:** `src/deployment.rs`  
   **Role:** Provider-agnostic deployment planning shapes.  
   **Key functionality:** `DeploymentPlan` capturing pack/version, tenant/env, runner sizing, messaging subjects, channels, secrets, OAuth clients, telemetry hints, and extensible `extra` metadata.
 - **Path:** `src/run.rs`, `src/outcome.rs`, `src/error.rs`, `src/state.rs`  
   **Role:** Execution outcome, error, and state primitives.  
   **Key functionality:** Run/node status enums, summaries, failures, `RunResult` with duration helper; generic `Outcome<T>` with convenience helpers; `GreenticError`/`ErrorCode` with conversions; state keys and JSON pointer helpers via `StatePath`.
+- **Path:** `src/secrets.rs`  
+  **Role:** Canonical secret identifiers and scope.  
+  **Key functionality:** `SecretKey` validation, `SecretScope`, and requirement types shared across bindings and manifests.
+- **Path:** `src/bindings.rs`  
+  **Role:** Resource binding hints for runtimes.  
+  **Key functionality:** Network allowlists, secrets/env passthrough, and MCP server hints consumed by host runtimes and tooling.
 - **Path:** `src/messaging.rs`, `src/events.rs`, `src/events_provider.rs`, `src/worker.rs`, `src/distributor.rs`  
   **Role:** Messaging, event, and worker envelopes.  
   **Key functionality:** Channel message envelopes with attachments/metadata; event envelopes with validated `EventId`, timestamps, payload and metadata; event provider descriptors (kind/transport/reliability/ordering/tags); worker request/response/message payload shapes; distributor API DTOs (env IDs, digests, statuses, artifact locations, signature/cache info, resolve request/response) aligned with `greentic:distributor-api@1.0.0`.
+- **Path:** `src/provider.rs`, `src/provider_install.rs`  
+  **Role:** Provider declarations and installation records.  
+  **Key functionality:** Provider manifests/decls/runtime refs plus shared install records for provisioning outputs (config/secret refs, webhook/subscription state, metadata).
 - **Path:** `src/store.rs`  
   **Role:** Storefront, catalog, subscription, and desired state models.  
   **Key functionality:** Themes/layout sections, storefronts/collections/product overrides; products/plans/subscriptions with pricing/versioning; bundle/spec/export descriptors for desired state (BundleId/BundleSpec now described as ids for distribution-bundle `.gtpack` outputs); uses BTreeMap metadata and pack/component references.
@@ -53,8 +77,7 @@
 - No TODO/FIXME/XXX/unimplemented markers found across source or tests (`rg` search), and no stubbed functions detected.
 
 ## 4. Broken, Failing, or Conflicting Areas
-- No failing tests observed; `cargo test --workspace` passes entirely (all crates and integration tests).
+- Test status unknown (not run as part of this refresh).
 
 ## 5. Notes for Future Work
-- Notify downstream consumers about the removal of the legacy `pack_spec` module and ensure they rely on `PackManifest` equivalents.
 - Re-run `cargo run --bin export-schemas --all-features` whenever models change to keep `dist/schemas/v1/` in sync.

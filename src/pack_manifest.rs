@@ -61,6 +61,16 @@ pub struct PackManifest {
     pub schema_version: String,
     /// Logical pack identifier.
     pub pack_id: PackId,
+    /// Optional human-readable name from `pack.yaml`.
+    #[cfg_attr(
+        feature = "schemars",
+        schemars(default, description = "Optional pack name")
+    )]
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub name: Option<String>,
     /// Pack semantic version.
     #[cfg_attr(
         feature = "schemars",

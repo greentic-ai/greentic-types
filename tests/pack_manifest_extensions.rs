@@ -128,6 +128,7 @@ fn extension_refs_roundtrip_json_yaml_and_cbor() {
     let manifest = PackManifest {
         schema_version: "pack-v1".into(),
         pack_id: PackId::new("vendor.ext.demo").unwrap(),
+        name: None,
         version: Version::parse("0.2.0").unwrap(),
         kind: PackKind::Application,
         publisher: "vendor".into(),
@@ -204,6 +205,7 @@ fn provider_extension_helpers_roundtrip_and_validate() {
     let manifest = PackManifest {
         schema_version: "pack-v1".into(),
         pack_id: PackId::new("vendor.ext.demo").unwrap(),
+        name: None,
         version: Version::parse("0.3.0").unwrap(),
         kind: PackKind::Provider,
         publisher: "vendor".into(),
@@ -252,6 +254,7 @@ fn empty_extensions_are_skipped_on_serialization() {
     let manifest = PackManifest {
         schema_version: "pack-v1".into(),
         pack_id: PackId::new("vendor.ext.empty").unwrap(),
+        name: None,
         version: Version::parse("0.1.0").unwrap(),
         kind: PackKind::Library,
         publisher: "vendor".into(),

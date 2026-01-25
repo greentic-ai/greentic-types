@@ -173,6 +173,7 @@ fn pack_manifest_component_sources_helpers_work() {
     let mut manifest = PackManifest {
         schema_version: "pack-v1".into(),
         pack_id: PackId::new("vendor.pack").unwrap(),
+        name: None,
         version: Version::parse("1.2.0").unwrap(),
         kind: PackKind::Application,
         publisher: "vendor".into(),
@@ -214,6 +215,7 @@ fn pack_manifest_without_component_sources_still_decodes() {
     let manifest = PackManifest {
         schema_version: "pack-v1".into(),
         pack_id: PackId::new("vendor.pack").unwrap(),
+        name: None,
         version: Version::parse("1.0.0").unwrap(),
         kind: PackKind::Application,
         publisher: "vendor".into(),

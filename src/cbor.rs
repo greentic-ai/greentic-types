@@ -72,6 +72,8 @@ struct SymbolTables {
 struct EncodedPackManifest {
     schema_version: String,
     pack_id: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
     version: String,
     kind: crate::pack_manifest::PackKind,
     publisher: String,
@@ -283,6 +285,7 @@ impl TryFrom<&PackManifest> for EncodedPackManifest {
         Ok(EncodedPackManifest {
             schema_version: manifest.schema_version.clone(),
             pack_id,
+            name: manifest.name.clone(),
             version: manifest.version.to_string(),
             kind: manifest.kind,
             publisher: manifest.publisher.clone(),
@@ -535,6 +538,7 @@ impl TryFrom<EncodedPackManifest> for PackManifest {
         Ok(PackManifest {
             schema_version: encoded.schema_version,
             pack_id,
+            name: encoded.name,
             version,
             kind: encoded.kind,
             publisher: encoded.publisher,
