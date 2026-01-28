@@ -1,13 +1,15 @@
 //! Canonical CBOR encoding helpers for pack manifests.
 
 use alloc::collections::{BTreeMap, BTreeSet};
+use alloc::string::String;
 use alloc::vec::Vec;
 use core::convert::TryFrom;
+use core::fmt;
 
 use ciborium::{de::from_reader, ser::into_writer};
 use indexmap::IndexMap;
 use semver::Version;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de};
 
 use crate::component::{ComponentDevFlow, ComponentOperation, ResourceHints};
 use crate::flow::{
@@ -68,10 +70,82 @@ struct SymbolTables {
     pack_ids: Vec<String>,
 }
 
+#[derive(Debug)]
+enum PackIdRef {
+    Index(u32),
+    Legacy(String),
+}
+
+impl Serialize for PackIdRef {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            PackIdRef::Index(idx) => serializer.serialize_u32(*idx),
+            PackIdRef::Legacy(value) => serializer.serialize_str(value),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for PackIdRef {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        struct PackIdRefVisitor;
+
+        impl<'de> de::Visitor<'de> for PackIdRefVisitor {
+            type Value = PackIdRef;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("pack_id index or string")
+            }
+
+            fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                if value <= u64::from(u32::MAX) {
+                    Ok(PackIdRef::Index(value as u32))
+                } else {
+                    Err(E::invalid_value(
+                        de::Unexpected::Unsigned(value),
+                        &"u32 index",
+                    ))
+                }
+            }
+
+            fn visit_u32<E>(self, value: u32) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                self.visit_u64(value as u64)
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(PackIdRef::Legacy(value.to_owned()))
+            }
+
+            fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(PackIdRef::Legacy(value))
+            }
+        }
+
+        deserializer.deserialize_any(PackIdRefVisitor)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 struct EncodedPackManifest {
     schema_version: String,
-    pack_id: u32,
+    pack_id: PackIdRef,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     version: String,
@@ -183,7 +257,7 @@ impl TryFrom<&PackManifest> for EncodedPackManifest {
 
     fn try_from(manifest: &PackManifest) -> Result<Self, Self::Error> {
         let (symbols, indexes) = build_symbol_tables(manifest);
-        let pack_id =
+        let pack_id_index =
             *indexes
                 .pack_ids
                 .get(manifest.pack_id.as_str())
@@ -284,7 +358,7 @@ impl TryFrom<&PackManifest> for EncodedPackManifest {
 
         Ok(EncodedPackManifest {
             schema_version: manifest.schema_version.clone(),
-            pack_id,
+            pack_id: PackIdRef::Index(pack_id_index),
             name: manifest.name.clone(),
             version: manifest.version.to_string(),
             kind: manifest.kind,
@@ -396,41 +470,64 @@ impl TryFrom<EncodedPackManifest> for PackManifest {
     type Error = CborError;
 
     fn try_from(encoded: EncodedPackManifest) -> Result<Self, Self::Error> {
-        let pack_id_str = encoded
-            .symbols
-            .pack_ids
-            .get(encoded.pack_id as usize)
-            .ok_or(CborError::InvalidIndex {
-                table: "pack_ids",
-                index: encoded.pack_id as usize,
-            })?;
-        let pack_id = pack_id_str
+        let EncodedPackManifest {
+            schema_version,
+            pack_id,
+            name,
+            version,
+            kind,
+            publisher,
+            symbols,
+            components,
+            flows,
+            dependencies,
+            capabilities,
+            secret_requirements,
+            signatures,
+            bootstrap,
+            extensions,
+        } = encoded;
+
+        let pack_id_string = match pack_id {
+            PackIdRef::Index(idx) => {
+                symbols
+                    .pack_ids
+                    .get(idx as usize)
+                    .cloned()
+                    .ok_or(CborError::InvalidIndex {
+                        table: "pack_ids",
+                        index: idx as usize,
+                    })?
+            }
+            PackIdRef::Legacy(value) => value,
+        };
+        let pack_id = pack_id_string
             .parse::<PackId>()
             .map_err(|err: GreenticError| CborError::InvalidIdentifier(err.to_string()))?;
 
-        let component_ids = encoded
-            .symbols
-            .component_ids
+        let SymbolTables {
+            component_ids: component_id_symbols,
+            node_ids: node_id_symbols,
+            capability_names,
+            pack_ids,
+        } = symbols;
+
+        let component_ids = component_id_symbols
             .iter()
             .map(|id| {
                 id.parse::<ComponentId>()
                     .map_err(|err: GreenticError| CborError::InvalidIdentifier(err.to_string()))
             })
             .collect::<Result<Vec<_>, _>>()?;
-        let node_ids = encoded
-            .symbols
-            .node_ids
+        let node_ids = node_id_symbols
             .iter()
             .map(|id| {
                 id.parse::<NodeId>()
                     .map_err(|err: GreenticError| CborError::InvalidIdentifier(err.to_string()))
             })
             .collect::<Result<Vec<_>, _>>()?;
-        let capability_names = encoded.symbols.capability_names;
-        let pack_ids = encoded.symbols.pack_ids;
 
-        let components = encoded
-            .components
+        let components = components
             .into_iter()
             .map(|component| {
                 let id = component_ids
@@ -460,8 +557,7 @@ impl TryFrom<EncodedPackManifest> for PackManifest {
             })
             .collect::<Result<Vec<_>, CborError>>()?;
 
-        let flows = encoded
-            .flows
+        let flows = flows
             .into_iter()
             .map(|flow_entry| {
                 let flow_id = flow_entry
@@ -478,8 +574,7 @@ impl TryFrom<EncodedPackManifest> for PackManifest {
             })
             .collect::<Result<Vec<_>, CborError>>()?;
 
-        let dependencies = encoded
-            .dependencies
+        let dependencies = dependencies
             .into_iter()
             .map(|dep| {
                 let pack_id = pack_ids
@@ -513,8 +608,7 @@ impl TryFrom<EncodedPackManifest> for PackManifest {
             })
             .collect::<Result<Vec<_>, CborError>>()?;
 
-        let capabilities = encoded
-            .capabilities
+        let capabilities = capabilities
             .into_iter()
             .map(|cap| {
                 let name = capability_names.get(cap.name as usize).cloned().ok_or(
@@ -530,26 +624,25 @@ impl TryFrom<EncodedPackManifest> for PackManifest {
             })
             .collect::<Result<Vec<_>, CborError>>()?;
 
-        let version: Version = encoded
-            .version
+        let version: Version = version
             .parse::<Version>()
             .map_err(|err| CborError::InvalidIdentifier(err.to_string()))?;
 
         Ok(PackManifest {
-            schema_version: encoded.schema_version,
+            schema_version,
             pack_id,
-            name: encoded.name,
+            name,
             version,
-            kind: encoded.kind,
-            publisher: encoded.publisher,
+            kind,
+            publisher,
             components,
             flows,
             dependencies,
             capabilities,
-            secret_requirements: encoded.secret_requirements,
-            signatures: encoded.signatures,
-            bootstrap: encoded.bootstrap,
-            extensions: encoded.extensions,
+            secret_requirements,
+            signatures,
+            bootstrap,
+            extensions,
         })
     }
 }
