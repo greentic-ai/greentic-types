@@ -812,3 +812,5 @@ fn index_from_set(values: BTreeSet<String>) -> (Vec<String>, BTreeMap<String, u3
     }
     (vec, map)
 }
+
+pub mod canonical;
