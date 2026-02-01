@@ -62,6 +62,7 @@ pub mod bindings;
 pub mod capabilities;
 #[cfg(feature = "std")]
 pub mod cbor;
+pub mod cbor_bytes;
 pub mod component;
 pub mod component_source;
 pub mod deployment;
@@ -71,10 +72,14 @@ pub mod events_provider;
 pub mod flow;
 pub mod flow_resolve;
 pub mod flow_resolve_summary;
+pub mod i18n;
 pub mod messaging;
+pub mod op_descriptor;
 pub mod pack_manifest;
 pub mod provider;
 pub mod provider_install;
+pub mod qa;
+pub mod schema_id;
 pub mod store;
 pub mod supply_chain;
 pub mod worker;
@@ -103,6 +108,7 @@ pub use capabilities::{
 };
 #[cfg(feature = "std")]
 pub use cbor::{CborError, decode_pack_manifest, encode_pack_manifest};
+pub use cbor_bytes::{Blob, CborBytes};
 pub use component::{
     ComponentCapabilities, ComponentConfigurators, ComponentDevFlow, ComponentManifest,
     ComponentOperation, ComponentProfileError, ComponentProfiles, EnvCapabilities,
@@ -144,7 +150,9 @@ pub use flow_resolve_summary::{
 pub use flow_resolve_summary::{read_flow_resolve_summary, write_flow_resolve_summary};
 #[cfg(feature = "std")]
 pub use flow_resolve_summary::{resolve_summary_path_for_flow, validate_flow_resolve_summary};
-pub use messaging::{Attachment, ChannelMessageEnvelope, MessageMetadata};
+pub use i18n::{Direction, I18nId, I18nTag, MinimalI18nProfile, id_for_tag};
+pub use messaging::{Actor, Attachment, ChannelMessageEnvelope, Destination, MessageMetadata};
+pub use op_descriptor::{IoSchema, OpDescriptor, OpExample};
 pub use outcome::Outcome;
 pub use pack::extensions::component_manifests::{
     ComponentManifestIndexEntryV1, ComponentManifestIndexError, ComponentManifestIndexV1,
@@ -174,9 +182,13 @@ pub use provider::{
     ProviderRuntimeRef,
 };
 pub use provider_install::{ProviderInstallRecord, ProviderInstallRefs};
+pub use qa::{
+    CanonicalPolicy, ExampleAnswers, QaSpecSource, SetupContract, SetupOutput, validate_answers,
+};
 #[cfg(feature = "time")]
 pub use run::RunResult;
 pub use run::{NodeFailure, NodeStatus, NodeSummary, RunStatus, TranscriptOffset};
+pub use schema_id::{IoSchemaSource, QaSchemaSource, SchemaId, SchemaSource, schema_id_for_cbor};
 pub use secrets::{SecretFormat, SecretKey, SecretRequirement, SecretScope};
 pub use session::canonical_session_key;
 pub use session::{ReplyScope, SessionCursor, SessionData, SessionKey, WaitScope};
@@ -1248,6 +1260,9 @@ pub struct TenantCtx {
     /// Distributed tracing identifier when available.
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub trace_id: Option<String>,
+    /// Optional locale/translation identifier for the session.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub i18n_id: Option<String>,
     /// Correlation identifier for linking related events.
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub correlation_id: Option<String>,
@@ -1287,6 +1302,7 @@ impl TenantCtx {
             node_id: None,
             provider_id: None,
             trace_id: None,
+            i18n_id: None,
             correlation_id: None,
             attributes: BTreeMap::new(),
             deadline: None,

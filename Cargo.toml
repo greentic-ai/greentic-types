@@ -2,7 +2,7 @@
 members = ["greentic-types-macros"]
 
 [workspace.package]
-version = "0.4.43"
+version = "0.4.44"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/greentic-ai/greentic-types"
@@ -25,13 +25,14 @@ rust-version = "1.85"
 
 [features]
 default = ["std", "serde", "time", "otel-keys"]
-std = []
-serde = ["dep:serde", "dep:serde_with"]
+std = ["blake3/std"]
+serde = ["dep:serde", "dep:serde_with", "dep:serde_bytes"]
 time = ["dep:time"]
 uuid = ["dep:uuid"]
 schemars = ["dep:schemars", "serde"]
 schema = ["schemars", "std"]
 otel-keys = []
+json-compat = []
 telemetry-autoinit = [
     "std",
     "dep:greentic-telemetry",
@@ -52,6 +53,9 @@ anyhow = { version = "1" }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_with = { version = "3", default-features = false, features = ["macros", "base64"], optional = true }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
+serde_bytes = { version = "0.11", optional = true }
+blake3 = { version = "1.8", default-features = false }
+unic-langid = "0.9"
 sha2 = { version = "0.10", default-features = false }
 thiserror = "2"
 time = { version = "0.3", features = ["formatting", "macros", "parsing", "serde"], optional = true }
