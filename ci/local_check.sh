@@ -55,7 +55,7 @@ run_tool_step cargo "cargo version" cargo --version
 run_tool_step rustup "rustup version" rustup --version
 
 # Formatting
-run_tool_step cargo "cargo fmt" cargo fmt --all -- --check
+run_tool_step rustfmt "cargo fmt" cargo fmt --all -- --check
 
 # Clippy (mirrors GH Actions flags)
 run_tool_step cargo "cargo clippy" cargo clippy --workspace --all-targets --all-features -- -D warnings

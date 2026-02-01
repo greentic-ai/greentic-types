@@ -1,6 +1,8 @@
 #![cfg(feature = "serde")]
 
-use greentic_types::{Attachment, ChannelMessageEnvelope, MessageMetadata, TenantCtx};
+use greentic_types::{
+    Actor, Attachment, ChannelMessageEnvelope, Destination, MessageMetadata, TenantCtx,
+};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use std::fmt::Debug;
@@ -23,7 +25,14 @@ fn text_only_message_roundtrip() {
         channel: "generic-channel".into(),
         session_id: "thread-1".into(),
         reply_scope: None,
-        user_id: Some("user-1".into()),
+        from: Some(Actor {
+            id: "user-1".into(),
+            kind: Some("user".into()),
+        }),
+        to: vec![Destination {
+            id: "room-1".into(),
+            kind: Some("room".into()),
+        }],
         correlation_id: None,
         text: Some("hello world".into()),
         attachments: Vec::new(),
@@ -53,7 +62,14 @@ fn message_with_attachments_and_metadata_roundtrip() {
         channel: "channel-attachments".into(),
         session_id: "session-44".into(),
         reply_scope: None,
-        user_id: Some("user-22".into()),
+        from: Some(Actor {
+            id: "user-22".into(),
+            kind: Some("user".into()),
+        }),
+        to: vec![Destination {
+            id: "session-room".into(),
+            kind: Some("room".into()),
+        }],
         correlation_id: None,
         text: Some("see attachment".into()),
         attachments,
