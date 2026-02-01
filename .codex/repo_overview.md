@@ -81,3 +81,4 @@
 
 ## 5. Notes for Future Work
 - Re-run `cargo run --bin export-schemas --all-features` whenever models change to keep `dist/schemas/v1/` in sync.
+- `ci/local_check.sh` now checks for `python3` before schema ID verification and `rg` before `scripts/deny_dupes.sh` so missing prerequisites are reported explicitly.

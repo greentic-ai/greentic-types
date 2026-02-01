@@ -72,7 +72,16 @@ run_tool_step cargo "cargo run --bin export-schemas --all-features" \
 
 # deny_dupes script
 if [[ -x scripts/deny_dupes.sh ]]; then
-  run_required "scripts/deny_dupes.sh" ./scripts/deny_dupes.sh
+  if need rg; then
+    run_required "rg version" rg --version
+    run_required "scripts/deny_dupes.sh" ./scripts/deny_dupes.sh
+  else
+    echo "[skip] scripts/deny_dupes.sh (missing rg)"
+    if [[ "$STRICT" == "1" ]]; then
+      echo "Missing required tool: rg" >&2
+      exit 1
+    fi
+  fi
 else
   echo "[skip] scripts/deny_dupes.sh (not executable)"
 fi
@@ -80,7 +89,16 @@ fi
 # Schema ID verification (online)
 if [[ "$ONLINE" == "1" ]]; then
   if [[ -x scripts/check_schema_ids.sh ]]; then
-    run_tool_step curl "Verify published schema IDs" ./scripts/check_schema_ids.sh
+    if need python3; then
+      run_required "python3 version" python3 --version
+      run_tool_step curl "Verify published schema IDs" ./scripts/check_schema_ids.sh
+    else
+      echo "[skip] schema ID verification (missing python3)"
+      if [[ "$STRICT" == "1" ]]; then
+        echo "Missing required tool: python3" >&2
+        exit 1
+      fi
+    fi
   else
     echo "[skip] schema ID verification (script missing)"
   fi
