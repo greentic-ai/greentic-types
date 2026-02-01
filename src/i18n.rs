@@ -91,19 +91,14 @@ pub enum I18nIdError {
 }
 
 /// Directionality of text (`ltr` / `rtl`).
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Direction {
     /// Left-to-right text.
+    #[default]
     Ltr,
     /// Right-to-left text.
     Rtl,
-}
-
-impl Default for Direction {
-    fn default() -> Self {
-        Self::Ltr
-    }
 }
 
 /// Minimal profile used during setup-time localization.
