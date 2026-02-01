@@ -151,7 +151,7 @@ pub use flow_resolve_summary::{read_flow_resolve_summary, write_flow_resolve_sum
 #[cfg(feature = "std")]
 pub use flow_resolve_summary::{resolve_summary_path_for_flow, validate_flow_resolve_summary};
 pub use i18n::{Direction, I18nId, I18nTag, MinimalI18nProfile, id_for_tag};
-pub use messaging::{Attachment, ChannelMessageEnvelope, MessageMetadata};
+pub use messaging::{Actor, Attachment, ChannelMessageEnvelope, Destination, MessageMetadata};
 pub use op_descriptor::{IoSchema, OpDescriptor, OpExample};
 pub use outcome::Outcome;
 pub use pack::extensions::component_manifests::{

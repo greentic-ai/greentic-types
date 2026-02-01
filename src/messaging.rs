@@ -9,6 +9,36 @@ use serde::{Deserialize, Serialize};
 
 use crate::{ReplyScope, TenantCtx};
 
+/// Message actor (sender/initiator).
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct Actor {
+    /// Actor identifier in provider space (e.g., slack user id, webex person id).
+    pub id: String,
+    /// Optional actor kind (e.g. "user", "bot", "system").
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub kind: Option<String>,
+}
+
+/// Outbound destination for egress providers.
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+pub struct Destination {
+    /// Destination identifier (provider specific; may be composite e.g. "teamId:channelId").
+    pub id: String,
+    /// Optional destination kind (e.g. "chat", "room", "user", "channel", "email", "phone").
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub kind: Option<String>,
+}
+
 /// Collection of metadata entries associated with a channel message.
 pub type MessageMetadata = BTreeMap<String, String>;
 
@@ -54,12 +84,18 @@ pub struct ChannelMessageEnvelope {
         serde(default, skip_serializing_if = "Option::is_none")
     )]
     pub reply_scope: Option<ReplyScope>,
-    /// Optional user identifier associated with the message.
+    /// Optional actor (sender/initiator) associated with the message (primarily ingress).
     #[cfg_attr(
         feature = "serde",
         serde(default, skip_serializing_if = "Option::is_none")
     )]
-    pub user_id: Option<String>,
+    pub from: Option<Actor>,
+    /// Outbound destinations for egress. Empty means “unspecified” and may be satisfied by provider config defaults.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
+    pub to: Vec<Destination>,
     /// Optional correlation identifier used by outbound adapters.
     #[cfg_attr(
         feature = "serde",
