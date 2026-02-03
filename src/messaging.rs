@@ -118,3 +118,5 @@ pub struct ChannelMessageEnvelope {
     #[cfg_attr(feature = "serde", serde(default))]
     pub metadata: MessageMetadata,
 }
+
+pub mod rendering;
