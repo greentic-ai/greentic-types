@@ -58,6 +58,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Base URL for all published JSON Schemas.
 pub const SCHEMA_BASE_URL: &str = "https://greentic-ai.github.io/greentic-types/schemas/v1";
 
+pub mod adapters;
 pub mod bindings;
 pub mod capabilities;
 #[cfg(feature = "std")]
@@ -67,12 +68,14 @@ pub mod component;
 pub mod component_source;
 pub mod deployment;
 pub mod distributor;
+pub mod envelope;
 pub mod events;
 pub mod events_provider;
 pub mod flow;
 pub mod flow_resolve;
 pub mod flow_resolve_summary;
 pub mod i18n;
+pub mod i18n_text;
 pub mod messaging;
 pub mod op_descriptor;
 pub mod pack_manifest;
@@ -80,6 +83,7 @@ pub mod provider;
 pub mod provider_install;
 pub mod qa;
 pub mod schema_id;
+pub mod schema_registry;
 pub mod store;
 pub mod supply_chain;
 pub mod worker;
@@ -92,6 +96,7 @@ pub mod policy;
 pub mod run;
 #[cfg(all(feature = "schemars", feature = "std"))]
 pub mod schema;
+pub mod schemas;
 pub mod secrets;
 pub mod session;
 pub mod state;
@@ -126,6 +131,7 @@ pub use distributor::{
     ArtifactLocation, CacheInfo, ComponentDigest, ComponentStatus, DistributorEnvironmentId,
     PackStatusResponseV2, ResolveComponentRequest, ResolveComponentResponse, SignatureSummary,
 };
+pub use envelope::Envelope;
 pub use error::{ErrorCode, GResult, GreenticError};
 pub use events::{EventEnvelope, EventId, EventMetadata};
 pub use events_provider::{
@@ -151,6 +157,7 @@ pub use flow_resolve_summary::{read_flow_resolve_summary, write_flow_resolve_sum
 #[cfg(feature = "std")]
 pub use flow_resolve_summary::{resolve_summary_path_for_flow, validate_flow_resolve_summary};
 pub use i18n::{Direction, I18nId, I18nTag, MinimalI18nProfile, id_for_tag};
+pub use i18n_text::I18nText;
 pub use messaging::{
     Actor, Attachment, ChannelMessageEnvelope, Destination, MessageMetadata,
     rendering::{
@@ -195,6 +202,17 @@ pub use qa::{
 pub use run::RunResult;
 pub use run::{NodeFailure, NodeStatus, NodeSummary, RunStatus, TranscriptOffset};
 pub use schema_id::{IoSchemaSource, QaSchemaSource, SchemaId, SchemaSource, schema_id_for_cbor};
+pub use schema_registry::{SCHEMAS, SchemaDef};
+pub use schemas::component::v0_5_0::LegacyComponentQaSpec;
+pub use schemas::component::v0_6_0::{
+    ComponentDescribe, ComponentInfo, ComponentQaSpec, ComponentRunInput, ComponentRunOutput,
+    QaMode as ComponentQaMode, Question as ComponentQuestion,
+    QuestionKind as ComponentQuestionKind,
+};
+pub use schemas::pack::v0_6_0::{
+    CapabilityDescriptor, CapabilityMetadata, PackDescribe, PackInfo, PackQaSpec,
+    PackValidationResult,
+};
 pub use secrets::{SecretFormat, SecretKey, SecretRequirement, SecretScope};
 pub use session::canonical_session_key;
 pub use session::{ReplyScope, SessionCursor, SessionData, SessionKey, WaitScope};

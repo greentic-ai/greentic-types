@@ -98,6 +98,10 @@ let outcome = match validate("payload") {
 - `cargo run --bin export-schemas --all-features` runs the helper binary and writes JSON Schemas into `dist/schemas/v1/`.
 - Published schemas (and canonical URLs) live in [SCHEMAS.md](SCHEMAS.md); CI pushes them to GitHub Pages automatically.
 
+## WIT + CBOR evolution
+The WIT ABI stays stable; CBOR schemas evolve via schema IDs and versions. The `SCHEMAS` registry
+and canonical CBOR fixtures enforce lockstep so encode/decode stays deterministic across releases.
+
 ### Worker envelope
 - `WorkerRequest`, `WorkerResponse`, and `WorkerMessage` are the shared worker envelope models, mirroring the `greentic:worker@1.0.0` WIT package.
 - They are domain-agnostic (no repo/store/channel concepts) and are shared between runner and messaging. See [docs/worker.md](docs/worker.md) for field breakdowns and usage notes.

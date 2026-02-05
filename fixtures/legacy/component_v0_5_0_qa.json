@@ -1,0 +1,23 @@
+{
+  "title": "Setup",
+  "description": "legacy adapter test fixture (approximation)",
+  "questions": [
+    {
+      "id": "api_key",
+      "label": "API key",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "region",
+      "label": "Region",
+      "kind": "choice",
+      "required": true,
+      "choices": [
+        { "value": "eu", "label": "EU" },
+        { "value": "us", "label": "US" }
+      ],
+      "default": "eu"
+    }
+  ]
+}
