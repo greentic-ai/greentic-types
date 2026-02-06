@@ -164,6 +164,13 @@ pub use messaging::{
         AdaptiveCardVersion, CapabilityProfile, RenderDiagnostics, RenderPlanHints, RendererMode,
         Tier,
     },
+    universal_dto::{
+        AuthUserRefV1, EncodeInV1, Header, HttpInV1, HttpOutV1, ProviderPayloadV1, RenderPlanInV1,
+        RenderPlanOutV1, SendPayloadInV1, SendPayloadResultV1, SubscriptionDeleteInV1,
+        SubscriptionDeleteOutV1, SubscriptionDeleteResultV1, SubscriptionEnsureInV1,
+        SubscriptionEnsureOutV1, SubscriptionEnsureResultV1, SubscriptionRenewInV1,
+        SubscriptionRenewOutV1, SubscriptionRenewalInV1, SubscriptionRenewalOutV1,
+    },
 };
 pub use op_descriptor::{IoSchema, OpDescriptor, OpExample};
 pub use outcome::Outcome;

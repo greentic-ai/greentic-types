@@ -120,3 +120,4 @@ pub struct ChannelMessageEnvelope {
 }
 
 pub mod rendering;
+pub mod universal_dto;
